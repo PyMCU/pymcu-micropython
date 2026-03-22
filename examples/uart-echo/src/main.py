@@ -15,7 +15,7 @@
 
 from machine import Pin, UART
 from utime import sleep_ms
-from whisnake.types import uint8
+from whipsnake.types import uint8
 
 
 def main():

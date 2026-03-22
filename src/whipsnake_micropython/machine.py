@@ -1,4 +1,4 @@
-# MicroPython-compatible machine module for Whisnake
+# MicroPython-compatible machine module for Whipsnake
 #
 # Provides Pin, UART, ADC, PWM, SPI, I2C as ZCA (zero-cost) classes that
 # mirror the MicroPython machine API.
@@ -17,13 +17,13 @@
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
 #   Pin number -> string name resolution happens at compile time via match/case.
 
-from whisnake.types import uint8, uint16, uint32, inline, const
-from whisnake.hal.gpio import Pin as _Pin
-from whisnake.hal.uart import UART as _UART
-from whisnake.hal.adc import AnalogPin as _AnalogPin
-from whisnake.hal.pwm import PWM as _PWM
-from whisnake.hal.spi import SPI as _SPI
-from whisnake.hal.i2c import I2C as _I2C
+from whipsnake.types import uint8, uint16, uint32, inline, const
+from whipsnake.hal.gpio import Pin as _Pin
+from whipsnake.hal.uart import UART as _UART
+from whipsnake.hal.adc import AnalogPin as _AnalogPin
+from whipsnake.hal.pwm import PWM as _PWM
+from whipsnake.hal.spi import SPI as _SPI
+from whipsnake.hal.i2c import I2C as _I2C
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ from whisnake.hal.i2c import I2C as _I2C
 
 @inline
 def _arduino_pin_name(n: uint8) -> str:
-    # Maps Arduino Uno integer pin number to Whisnake port string.
+    # Maps Arduino Uno integer pin number to Whipsnake port string.
     # D0-D7 -> PORTD; D8-D13 -> PORTB.
     # String constants are resolved at compile time (match/case DCE).
     match n:
@@ -183,7 +183,7 @@ class ADC:
     def _raw_read(self) -> uint16:
         # Read ADCL/ADCH after conversion completes.
         # Caller is responsible for starting conversion via start().
-        from whisnake.types import ptr
+        from whipsnake.types import ptr
         ADCSRA: ptr[uint8] = ptr(0x7A)
         ADCL:   ptr[uint8] = ptr(0x78)
         ADCH:   ptr[uint8] = ptr(0x79)
@@ -273,7 +273,7 @@ class I2C:
     @inline
     def scan(self) -> uint8:
         # Simplified: returns number of responding devices (not a list -- no heap).
-        # For a full scan, use whisnake.hal.i2c.I2C directly.
+        # For a full scan, use whipsnake.hal.i2c.I2C directly.
         count: uint8 = 0
         addr: uint8 = 1
         while addr < 128:

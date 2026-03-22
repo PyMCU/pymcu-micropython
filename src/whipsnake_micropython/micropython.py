@@ -1,11 +1,11 @@
-# MicroPython-compatible micropython module for Whisnake
+# MicroPython-compatible micropython module for Whipsnake
 #
 # micropython.const(N) is a MicroPython idiom to hint that an integer
-# expression is a compile-time constant. In Whisnake, all integer literals
+# expression is a compile-time constant. In Whipsnake, all integer literals
 # and const[T]-annotated variables are already compile-time constants, so
 # const() is treated as an identity function.
 #
-# native and viper decorators are silently ignored (all Whisnake functions
+# native and viper decorators are silently ignored (all Whipsnake functions
 # targeting a flat ISA are already "native" -- no interpreter overhead).
 #
 # Usage:
@@ -16,7 +16,7 @@
 #   def fast_func():
 #       ...
 
-from whisnake.types import inline
+from whipsnake.types import inline
 
 
 @inline
@@ -26,10 +26,10 @@ def const(value):
 
 
 def native(f):
-    # Silently ignored: Whisnake emits native machine code for all functions.
+    # Silently ignored: Whipsnake emits native machine code for all functions.
     return f
 
 
 def viper(f):
-    # Silently ignored: use @inline for zero-cost inlining in Whisnake.
+    # Silently ignored: use @inline for zero-cost inlining in Whipsnake.
     return f

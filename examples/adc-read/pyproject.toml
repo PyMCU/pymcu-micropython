@@ -4,7 +4,7 @@ version = "0.1.0a1"
 requires-python = ">=3.11"
 dependencies = [
     "whipsnake>=0.1.0a1
-    "whisnake-micropython>=0.1.0a1
+    "whipsnake-micropython>=0.1.0a1
 ]
 
 [tool.whip]

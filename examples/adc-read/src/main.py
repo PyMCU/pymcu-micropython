@@ -13,7 +13,7 @@
 
 from machine import UART, ADC
 from utime import sleep_ms
-from whisnake.types import uint16
+from whipsnake.types import uint16
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
         val: uint16 = adc.read()    # 0-1023
         uart.write_str("ADC=")
         # Print high byte as proxy for value (0-255 range)
-        from whisnake.types import uint8
+        from whipsnake.types import uint8
         hi: uint8 = val >> 2        # scale 0-1023 to 0-255
         uart.print_byte(hi)
         sleep_ms(200)

@@ -1,15 +1,15 @@
-# MicroPython-compatible utime module for Whisnake
+# MicroPython-compatible utime module for Whipsnake
 #
 # Provides sleep_ms(), sleep_us(), and ticks_ms() that map to the underlying
-# Whisnake delay functions (no runtime overhead).
+# Whipsnake delay functions (no runtime overhead).
 #
 # Usage:
 #   from utime import sleep_ms, sleep_us
 #   sleep_ms(500)
 #   sleep_us(100)
 
-from whisnake.types import uint8, uint16, inline
-from whisnake.time import delay_ms, delay_us
+from whipsnake.types import uint8, uint16, inline
+from whipsnake.time import delay_ms, delay_us
 
 
 @inline

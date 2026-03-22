@@ -14,7 +14,7 @@
 #       led.value(0)
 #       sleep_ms(500)
 #
-# No changes required -- identical API via whisnake-micropython.
+# No changes required -- identical API via whipsnake-micropython.
 #
 # Wiring:
 #   No external wiring -- uses built-in LED on D13

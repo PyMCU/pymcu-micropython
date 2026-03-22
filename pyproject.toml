@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "whisnake-micropython"
+name = "whipsnake-micropython"
 version = "0.1.0a1"
-description = "MicroPython stdlib flavor for Whisnake"
+description = "MicroPython stdlib flavor for Whipsnake"
 requires-python = ">=3.11"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/whisnake_micropython"]
+packages = ["src/whipsnake_micropython"]
