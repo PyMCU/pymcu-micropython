@@ -1,0 +1,18 @@
+[project]
+name = "adc-read"
+version = "0.1.0a1"
+requires-python = ">=3.11"
+dependencies = [
+    "whipsnake>=0.1.0a1
+    "whisnake-micropython>=0.1.0a1
+]
+
+[tool.whip]
+board     = "arduino_uno"
+frequency = 16000000
+sources   = "src"
+entry     = "main.py"
+stdlib    = ["micropython"]
+
+[tool.whip.flash]
+programmer = "avrdude"
