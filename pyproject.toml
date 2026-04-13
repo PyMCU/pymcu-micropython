@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "whipsnake-micropython"
+name = "pymcu-micropython"
 version = "0.1.0a1"
-description = "MicroPython stdlib flavor for Whipsnake"
+description = "MicroPython stdlib flavor for PyMCU"
 requires-python = ">=3.11"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/whipsnake_micropython"]
+packages = ["src/pymcu_micropython"]

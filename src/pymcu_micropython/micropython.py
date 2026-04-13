@@ -16,7 +16,7 @@
 #   def fast_func():
 #       ...
 
-from whipsnake.types import inline
+from pymcu.types import inline
 
 
 @inline

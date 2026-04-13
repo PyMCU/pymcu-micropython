@@ -17,13 +17,13 @@
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
 #   Pin number -> string name resolution happens at compile time via match/case.
 
-from whipsnake.types import uint8, uint16, uint32, inline, const
-from whipsnake.hal.gpio import Pin as _Pin
-from whipsnake.hal.uart import UART as _UART
-from whipsnake.hal.adc import AnalogPin as _AnalogPin
-from whipsnake.hal.pwm import PWM as _PWM
-from whipsnake.hal.spi import SPI as _SPI
-from whipsnake.hal.i2c import I2C as _I2C
+from pymcu.types import uint8, uint16, uint32, inline, const
+from pymcu.hal.gpio import Pin as _Pin
+from pymcu.hal.uart import UART as _UART
+from pymcu.hal.adc import AnalogPin as _AnalogPin
+from pymcu.hal.pwm import PWM as _PWM
+from pymcu.hal.spi import SPI as _SPI
+from pymcu.hal.i2c import I2C as _I2C
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +183,7 @@ class ADC:
     def _raw_read(self) -> uint16:
         # Read ADCL/ADCH after conversion completes.
         # Caller is responsible for starting conversion via start().
-        from whipsnake.types import ptr
+        from pymcu.types import ptr
         ADCSRA: ptr[uint8] = ptr(0x7A)
         ADCL:   ptr[uint8] = ptr(0x78)
         ADCH:   ptr[uint8] = ptr(0x79)
