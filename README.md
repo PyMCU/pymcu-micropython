@@ -27,6 +27,7 @@ Or add it as a dependency in your project's `pyproject.toml`:
 dependencies = [
     "pymcu>=0.1.0a1",
     "pymcu-stdlib>=0.1.0a1",
+    "pymcu-micropython>=0.1.0a1",
 ]
 ```
 

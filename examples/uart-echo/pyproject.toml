@@ -5,6 +5,7 @@ requires-python = ">=3.11"
 dependencies = [
     "pymcu>=0.1.0a1",
     "pymcu-stdlib>=0.1.0a1",
+    "pymcu-micropython>=0.1.0a1",
 ]
 
 [tool.whip]
