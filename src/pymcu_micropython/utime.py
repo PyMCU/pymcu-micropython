@@ -1,7 +1,7 @@
-# MicroPython-compatible utime module for Whipsnake
+# MicroPython-compatible utime module for PyMCU
 #
 # Provides sleep_ms(), sleep_us(), and ticks_ms() that map to the underlying
-# Whipsnake delay functions (no runtime overhead).
+# PyMCU delay functions (no runtime overhead).
 #
 # Usage:
 #   from utime import sleep_ms, sleep_us

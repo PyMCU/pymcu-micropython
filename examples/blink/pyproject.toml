@@ -3,8 +3,9 @@ name = "blink"
 version = "0.1.0a1"
 requires-python = ">=3.11"
 dependencies = [
-    "whipsnake>=0.1.0a1
-    "whipsnake-micropython>=0.1.0a1
+    "pymcu>=0.1.0a1",
+    "pymcu-stdlib>=0.1.0a1",
+    "pymcu-micropython>=0.1.0a1",
 ]
 
 [tool.whip]
