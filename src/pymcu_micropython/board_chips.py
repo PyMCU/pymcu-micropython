@@ -1,5 +1,5 @@
 # Board -> chip mapping for boards known to the MicroPython flavor.
-# The Whipsnake build driver merges this into its own BOARD_CHIPS dict at build time.
+# The PyMCU build driver merges this into its own BOARD_CHIPS dict at build time.
 # Extension entries take precedence over the built-in driver mapping.
 
 BOARD_CHIPS: dict = {

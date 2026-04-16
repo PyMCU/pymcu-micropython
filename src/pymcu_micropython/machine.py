@@ -1,4 +1,4 @@
-# MicroPython-compatible machine module for Whipsnake
+# MicroPython-compatible machine module for PyMCU
 #
 # Provides Pin, UART, ADC, PWM, SPI, I2C as ZCA (zero-cost) classes that
 # mirror the MicroPython machine API.
@@ -32,7 +32,7 @@ from pymcu.hal.i2c import I2C as _I2C
 
 @inline
 def _arduino_pin_name(n: uint8) -> str:
-    # Maps Arduino Uno integer pin number to Whipsnake port string.
+    # Maps Arduino Uno integer pin number to PyMCU port string.
     # D0-D7 -> PORTD; D8-D13 -> PORTB.
     # String constants are resolved at compile time (match/case DCE).
     match n:
@@ -273,7 +273,7 @@ class I2C:
     @inline
     def scan(self) -> uint8:
         # Simplified: returns number of responding devices (not a list -- no heap).
-        # For a full scan, use whipsnake.hal.i2c.I2C directly.
+        # For a full scan, use pymcu.hal.i2c.I2C directly.
         count: uint8 = 0
         addr: uint8 = 1
         while addr < 128:
