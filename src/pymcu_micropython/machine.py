@@ -89,7 +89,12 @@ class Pin:
     def __init__(self, pin_id: uint8, mode: uint8 = 1):
         # pin_id is an Arduino Uno integer pin number (0-13).
         # _arduino_pin_name converts it to a port string at compile time via DCE.
-        self._pin = _Pin(_arduino_pin_name(pin_id), mode)
+        # machine.Pin uses OUT=1/IN=0 (MicroPython); hal.gpio.Pin uses OUT=0/IN=1.
+        # Use explicit branches so the compiler sees constant HAL mode values.
+        if mode == 1:
+            self._pin = _Pin(_arduino_pin_name(pin_id), 0)
+        else:
+            self._pin = _Pin(_arduino_pin_name(pin_id), 1)
 
     @inline
     def high(self):
@@ -128,7 +133,10 @@ class Pin:
     def mode(self, m: uint8 = 255) -> uint8:
         if m == 255:
             return self._pin.mode()
-        self._pin.mode(m)
+        if m == 1:
+            self._pin.mode(0)
+        else:
+            self._pin.mode(1)
         return m
 
 
