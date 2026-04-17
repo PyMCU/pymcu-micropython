@@ -74,8 +74,8 @@ def _arduino_pin_name(n: uint8) -> str:
 
 class Pin:
     # Mode constants (MicroPython style)
-    IN      = 0
-    OUT     = 1
+    IN      = 1
+    OUT     = 0
 
     # Pull constants
     PULL_UP   = 1
