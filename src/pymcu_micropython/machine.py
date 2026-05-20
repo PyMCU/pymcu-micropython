@@ -130,7 +130,7 @@ class Pin:
     def mode(self, m: uint8 = 255) -> uint8:
         if m == 255:
             return self._pin.mode()
-        self._pin.mode(mode)
+        self._pin.mode(m)
         return m
 
 
