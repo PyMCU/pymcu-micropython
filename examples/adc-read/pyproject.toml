@@ -8,12 +8,12 @@ dependencies = [
     "pymcu-micropython>=0.1.0a1",
 ]
 
-[tool.whip]
+[tool.pymcu]
 board     = "arduino_uno"
 frequency = 16000000
 sources   = "src"
 entry     = "main.py"
 stdlib    = ["micropython"]
 
-[tool.whip.flash]
+[tool.pymcu.flash]
 programmer = "avrdude"
