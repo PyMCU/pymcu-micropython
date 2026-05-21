@@ -35,18 +35,21 @@ class DHT11:
 
     @inline
     def measure(self):
-        # Start signal: hold low >= 18 ms, then release to input
+        # Start signal: hold low >= 18 ms, then pull high 20-40 us before
+        # releasing to input.  The high() call leaves PORT bit = 1 so that
+        # mode(IN) enables the AVR internal pull-up (PORT=1, DDR=0).
         self._pin.mode(_Pin.OUT)
         self._pin.low()
         delay_ms(18)
+        self._pin.high()
+        delay_us(30)
         self._pin.mode(_Pin.IN)
-        delay_us(40)
 
         # ACK: sensor pulls low ~80 us, then high ~80 us
-        if time_pulse_us(self._pin, 0, 200) < 0:
+        if time_pulse_us(self._pin, 0, 1000) < 0:
             self.failed = True
             return
-        if time_pulse_us(self._pin, 1, 200) < 0:
+        if time_pulse_us(self._pin, 1, 1000) < 0:
             self.failed = True
             return
 
@@ -71,15 +74,13 @@ class DHT11:
         result: uint8 = 0
         bit: uint8 = 0
         while bit < 8:
-            # Wait for ~50 us LOW (start of bit)
-            if time_pulse_us(self._pin, 0, 200) < 0:
-                return 0
-            # Measure HIGH duration: >35 us = bit 1, else = bit 0
-            high_dur = time_pulse_us(self._pin, 1, 200)
+            # pulse_in(1) waits through the ~50 us bit-start LOW then
+            # measures the HIGH duration: ~26 us = 0, ~70 us = 1.
+            high_dur = time_pulse_us(self._pin, 1, 1000)
             if high_dur < 0:
                 return 0
             result = result << 1
-            if high_dur > 35:
+            if high_dur > 40:
                 result = result | 1
             bit = bit + 1
         return result
