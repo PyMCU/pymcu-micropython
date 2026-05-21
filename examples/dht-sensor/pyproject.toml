@@ -1,0 +1,20 @@
+[project]
+name = "dht-sensor"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pymcu-stdlib>=0.1.2a5",
+    "pymcu>=0.1.0a27",
+    "pymcu-micropython>=0.1.0",
+]
+
+[tool.pymcu]
+board     = "arduino_uno"
+frequency = 16000000
+sources   = "src"
+entry     = "main.py"
+stdlib    = ["micropython"]
+
+[tool.pymcu.flash]
+programmer = "avrdude"
+port       = "/dev/cu.usbmodem114101"
