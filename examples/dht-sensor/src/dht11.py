@@ -76,9 +76,9 @@ class DHT11:
         while bit < 8:
             # pulse_in(1) waits through the ~50 us bit-start LOW then
             # measures the HIGH duration: ~26 us = 0, ~70 us = 1.
+            # Timeout returns -1 (int16) which is < 40, so the bit reads as 0;
+            # the checksum will catch any corrupted frame.
             high_dur = time_pulse_us(self._pin, 1, 1000)
-            if high_dur < 0:
-                return 0
             result = result << 1
             if high_dur > 40:
                 result = result | 1

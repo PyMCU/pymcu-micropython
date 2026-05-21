@@ -27,27 +27,29 @@ from machine import Pin, UART
 from utime import sleep_ms
 from dht11 import DHT11
 
-uart     = UART(0, 9600)
-led      = Pin(13, Pin.OUT)
-data_pin = Pin(2, Pin.IN)
-sensor   = DHT11(data_pin)
 
-uart.println("DHT11 ready")
+def main():
+    uart     = UART(0, 9600)
+    led      = Pin(13, Pin.OUT)
+    data_pin = Pin(2, Pin.IN)
+    sensor   = DHT11(data_pin)
 
-while True:
-    sensor.measure()
+    uart.println("DHT11 ready")
 
-    if sensor.failed:
-        uart.println("read error")
-        led.low()
-    else:
-        uart.write_str("H: ")
-        uart.print_byte(sensor.humidity)
-        uart.write_str("  T: ")
-        uart.print_byte(sensor.temperature)
-        uart.write_str("\n")
-        led.high()
-        sleep_ms(100)
-        led.low()
+    while True:
+        sensor.measure()
 
-    sleep_ms(2000)
+        if sensor.failed:
+            uart.println("read error")
+            led.low()
+        else:
+            uart.write_str("H: ")
+            uart.print_byte(sensor.humidity)
+            uart.write_str("  T: ")
+            uart.print_byte(sensor.temperature)
+            uart.write_str("\n")
+            led.high()
+            sleep_ms(100)
+            led.low()
+
+        sleep_ms(2000)
