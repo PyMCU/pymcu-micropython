@@ -17,7 +17,7 @@
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
 #   Pin number -> string name resolution happens at compile time via match/case.
 
-from pymcu.types import uint8, uint16, uint32, int16, inline, const
+from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.uart import UART as _UART
 from pymcu.hal.adc import AnalogPin as _AnalogPin
@@ -521,13 +521,11 @@ class Signal:
 class _Mem8:
     @inline
     def __getitem__(self, addr: uint16) -> uint8:
-        from pymcu.types import ptr
         p: ptr[uint8] = ptr(addr)
         return p.value
 
     @inline
     def __setitem__(self, addr: uint16, value: uint8):
-        from pymcu.types import ptr
         p: ptr[uint8] = ptr(addr)
         p.value = value
 
@@ -535,13 +533,11 @@ class _Mem8:
 class _Mem16:
     @inline
     def __getitem__(self, addr: uint16) -> uint16:
-        from pymcu.types import ptr
         p: ptr[uint16] = ptr(addr)
         return p.value
 
     @inline
     def __setitem__(self, addr: uint16, value: uint16):
-        from pymcu.types import ptr
         p: ptr[uint16] = ptr(addr)
         p.value = value
 
