@@ -21,7 +21,7 @@
 #   4. Checksum = lower 8 bits of sum of the first 4 bytes
 
 from pymcu.types import uint8, inline
-from machine import Pin as _Pin
+from machine import Pin as _Pin, time_pulse_us
 from pymcu.time import delay_ms, delay_us
 
 
@@ -43,10 +43,10 @@ class DHT11:
         delay_us(40)
 
         # ACK: sensor pulls low ~80 us, then high ~80 us
-        if self._wait(0) == 0:
+        if time_pulse_us(self._pin, 0, 200) < 0:
             self.failed = True
             return
-        if self._wait(1) == 0:
+        if time_pulse_us(self._pin, 1, 200) < 0:
             self.failed = True
             return
 
@@ -67,30 +67,19 @@ class DHT11:
         self.temperature = temp_int
 
     @inline
-    def _wait(self, level: uint8) -> uint8:
-        timeout: uint8 = 255
-        while timeout > 0:
-            if self._pin.value() == level:
-                return timeout
-            timeout = timeout - 1
-        return 0
-
-    @inline
     def _read_byte(self) -> uint8:
         result: uint8 = 0
         bit: uint8 = 0
         while bit < 8:
-            if self._wait(0) == 0:
+            # Wait for ~50 us LOW (start of bit)
+            if time_pulse_us(self._pin, 0, 200) < 0:
                 return 0
-            if self._wait(1) == 0:
+            # Measure HIGH duration: >35 us = bit 1, else = bit 0
+            high_dur = time_pulse_us(self._pin, 1, 200)
+            if high_dur < 0:
                 return 0
-            count: uint8 = 0
-            while self._pin.value() != 0:
-                count = count + 1
-                if count == 255:
-                    break
             result = result << 1
-            if count > 35:
+            if high_dur > 35:
                 result = result | 1
             bit = bit + 1
         return result

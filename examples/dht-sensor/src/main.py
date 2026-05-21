@@ -29,9 +29,10 @@ from dht11 import DHT11
 
 
 def main():
-    uart   = UART(0, 9600)
-    led    = Pin(13, Pin.OUT)
-    sensor = DHT11(Pin(2, Pin.IN))
+    uart     = UART(0, 9600)
+    led      = Pin(13, Pin.OUT)
+    data_pin = Pin(2, Pin.IN)
+    sensor   = DHT11(data_pin)
 
     uart.println("DHT11 ready")
 
