@@ -1,0 +1,19 @@
+[project]
+name = "mem8-test"
+version = "0.1.0a1"
+requires-python = ">=3.11"
+dependencies = [
+    "pymcu>=0.1.0a1",
+    "pymcu-stdlib>=0.1.0a1",
+    "pymcu-micropython>=0.1.0a1",
+]
+
+[tool.pymcu]
+board     = "arduino_uno"
+frequency = 16000000
+sources   = "src"
+entry     = "main.py"
+stdlib    = ["micropython"]
+
+[tool.pymcu.flash]
+programmer = "avrdude"
