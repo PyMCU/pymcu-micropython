@@ -514,33 +514,3 @@ class Signal:
         return x
 
 
-# ---------------------------------------------------------------------------
-# mem8 / mem16: raw memory access (MicroPython machine.mem8 / machine.mem16)
-# ---------------------------------------------------------------------------
-
-class _Mem8:
-    @inline
-    def __getitem__(self, addr: uint16) -> uint8:
-        p: ptr[uint8] = ptr(addr)
-        return p.value
-
-    @inline
-    def __setitem__(self, addr: uint16, value: uint8):
-        p: ptr[uint8] = ptr(addr)
-        p.value = value
-
-
-class _Mem16:
-    @inline
-    def __getitem__(self, addr: uint16) -> uint16:
-        p: ptr[uint16] = ptr(addr)
-        return p.value
-
-    @inline
-    def __setitem__(self, addr: uint16, value: uint16):
-        p: ptr[uint16] = ptr(addr)
-        p.value = value
-
-
-mem8  = _Mem8()
-mem16 = _Mem16()

@@ -15,12 +15,10 @@
 from machine import Pin, Signal
 from utime import sleep_ms
 
-
-def main():
-    pin = Pin(13, Pin.OUT)
-    led = Signal(pin)
-    while True:
-        led.on()
-        sleep_ms(500)
-        led.off()
-        sleep_ms(500)
+pin = Pin(13, Pin.OUT)
+led = Signal(pin)
+while True:
+    led.on()
+    sleep_ms(500)
+    led.off()
+    sleep_ms(500)

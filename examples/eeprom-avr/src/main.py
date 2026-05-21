@@ -17,20 +17,18 @@ from utime import sleep_ms
 
 ADDR: int = 0
 
-
-def main():
-    led  = Pin(13, Pin.OUT)
-    ee   = EEPROM()
-    n: int = ee.read(ADDR)
-    if n >= 10:
-        n = 0
-    count: int = n + 1
-    ee.write(ADDR, count)
-    i: int = 0
-    while i < count:
-        led.value(1)
-        sleep_ms(500)
-        led.value(0)
-        sleep_ms(500)
-        i = i + 1
-    sleep_ms(3000)
+led  = Pin(13, Pin.OUT)
+ee   = EEPROM()
+n: int = ee.read(ADDR)
+if n >= 10:
+    n = 0
+count: int = n + 1
+ee.write(ADDR, count)
+i: int = 0
+while i < count:
+    led.value(1)
+    sleep_ms(500)
+    led.value(0)
+    sleep_ms(500)
+    i = i + 1
+sleep_ms(3000)

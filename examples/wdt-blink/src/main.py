@@ -13,14 +13,12 @@
 from machine import Pin, WDT
 from utime import sleep_ms
 
-
-def main():
-    led = Pin(13, Pin.OUT)
-    wdt = WDT(timeout=2000)
-    while True:
-        led.value(1)
-        sleep_ms(500)
-        wdt.feed()
-        led.value(0)
-        sleep_ms(500)
-        wdt.feed()
+led = Pin(13, Pin.OUT)
+wdt = WDT(timeout=2000)
+while True:
+    led.value(1)
+    sleep_ms(500)
+    wdt.feed()
+    led.value(0)
+    sleep_ms(500)
+    wdt.feed()
