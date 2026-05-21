@@ -467,3 +467,84 @@ class WDT:
     def feed(self):
         # Reset the watchdog counter. Must be called within the timeout period.
         self._wdt.feed()
+
+
+# ---------------------------------------------------------------------------
+# Signal: active-high / active-low pin abstraction
+# ---------------------------------------------------------------------------
+
+class Signal:
+    @inline
+    def __init__(self, pin: Pin, invert: const[uint8] = 0):
+        # pin:    machine.Pin instance (must already be configured as OUT or IN).
+        # invert: 0 = active-high (default), 1 = active-low.
+        self._pin = pin
+        self._inv = invert
+
+    @inline
+    def on(self):
+        # Drive pin to the active state.
+        if self._inv:
+            self._pin.low()
+        else:
+            self._pin.high()
+
+    @inline
+    def off(self):
+        # Drive pin to the inactive state.
+        if self._inv:
+            self._pin.high()
+        else:
+            self._pin.low()
+
+    @inline
+    def value(self, x: uint8 = 255) -> uint8:
+        # Read or write the logical (active) value.
+        # value()  -> read: returns 1 if signal is active, 0 if inactive.
+        # value(v) -> write: drives pin to produce the requested logical level.
+        if x == 255:
+            raw: uint8 = self._pin.value()
+            if self._inv:
+                return 1 - raw
+            return raw
+        if self._inv:
+            self._pin.value(1 - x)
+        else:
+            self._pin.value(x)
+        return x
+
+
+# ---------------------------------------------------------------------------
+# mem8 / mem16: raw memory access (MicroPython machine.mem8 / machine.mem16)
+# ---------------------------------------------------------------------------
+
+class _Mem8:
+    @inline
+    def __getitem__(self, addr: uint16) -> uint8:
+        from pymcu.types import ptr
+        p: ptr[uint8] = ptr(addr)
+        return p.value
+
+    @inline
+    def __setitem__(self, addr: uint16, value: uint8):
+        from pymcu.types import ptr
+        p: ptr[uint8] = ptr(addr)
+        p.value = value
+
+
+class _Mem16:
+    @inline
+    def __getitem__(self, addr: uint16) -> uint16:
+        from pymcu.types import ptr
+        p: ptr[uint16] = ptr(addr)
+        return p.value
+
+    @inline
+    def __setitem__(self, addr: uint16, value: uint16):
+        from pymcu.types import ptr
+        p: ptr[uint16] = ptr(addr)
+        p.value = value
+
+
+mem8  = _Mem8()
+mem16 = _Mem16()
