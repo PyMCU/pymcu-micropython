@@ -17,13 +17,46 @@
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
 #   Pin number -> string name resolution happens at compile time via match/case.
 
-from pymcu.types import uint8, uint16, uint32, inline, const
+from pymcu.types import uint8, uint16, uint32, int16, inline, const
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.uart import UART as _UART
 from pymcu.hal.adc import AnalogPin as _AnalogPin
 from pymcu.hal.pwm import PWM as _PWM
 from pymcu.hal.spi import SPI as _SPI
 from pymcu.hal.i2c import I2C as _I2C
+from pymcu.hal.timer import Timer as _Timer
+from pymcu.hal.watchdog import Watchdog as _Watchdog
+from pymcu.hal.power import (
+    sleep_idle as _sleep_idle,
+    sleep_power_save as _sleep_power_save,
+    sleep_power_down as _sleep_power_down,
+)
+from pymcu.hal.irq import (
+    enable_interrupts as _enable_interrupts,
+    disable_interrupts as _disable_interrupts,
+)
+from pymcu.chips import __FREQ__
+
+# ---------------------------------------------------------------------------
+# Module-level constants (MicroPython machine module compatibility)
+# ---------------------------------------------------------------------------
+
+# Power / sleep mode identifiers
+IDLE      = 0
+SLEEP     = 1
+DEEPSLEEP = 2
+
+# Reset cause codes
+PWRON_RESET     = 0
+HARD_RESET      = 1
+WDT_RESET       = 2
+DEEPSLEEP_RESET = 3
+SOFT_RESET      = 4
+
+# Wake reason codes
+PIN_WAKE  = 0
+RTC_WAKE  = 1
+WLAN_WAKE = 2
 
 
 # ---------------------------------------------------------------------------
@@ -31,7 +64,7 @@ from pymcu.hal.i2c import I2C as _I2C
 # ---------------------------------------------------------------------------
 
 @inline
-def _arduino_pin_name(n: uint8) -> str:
+def _arduino_pin_name(n: const[uint8]) -> str:
     # Maps Arduino Uno integer pin number to PyMCU port string.
     # D0-D7 -> PORTD; D8-D13 -> PORTB.
     # String constants are resolved at compile time (match/case DCE).
@@ -86,7 +119,7 @@ class Pin:
     IRQ_RISING  = 2
 
     @inline
-    def __init__(self, pin_id: uint8, mode: uint8 = 1):
+    def __init__(self, pin_id: const[uint8], mode: const[uint8] = 1):
         # pin_id is an Arduino Uno integer pin number (0-13).
         # _arduino_pin_name converts it to a port string at compile time via DCE.
         # machine.Pin constants now match hal.gpio.Pin: OUT=0, IN=1.
@@ -123,6 +156,17 @@ class Pin:
         return x
 
     @inline
+    def init(self, mode: const[uint8] = 255, pull: const[uint8] = 255):
+        # Re-initialise the pin (MicroPython standard).  Uses sentinel 255
+        # for "unchanged" (== uint8 representation of -1 used by hal).
+        self._pin.init(mode, pull)
+
+    @inline
+    def __call__(self, x: uint8 = 255) -> uint8:
+        # Fast shortcut equivalent to Pin.value([x])  (MicroPython standard).
+        return self.value(x)
+
+    @inline
     def irq(self, trigger: uint8 = IRQ_FALLING):
         self._pin.irq(trigger)
 
@@ -132,6 +176,22 @@ class Pin:
             return self._pin.mode()
         self._pin.mode(m)
         return m
+
+
+# ---------------------------------------------------------------------------
+# time_pulse_us: measure pulse duration (MicroPython machine.time_pulse_us)
+# ---------------------------------------------------------------------------
+
+@inline
+def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint16 = 1000) -> int16:
+    # Accepts a machine.Pin instance (standard MicroPython API).
+    # Delegates to the underlying hal.gpio.Pin.pulse_in directly, without
+    # going through machine.Pin (pulse_in is not part of the MP Pin API).
+    # Returns the pulse width in microseconds, or -1 on timeout.
+    result: uint16 = pin._pin.pulse_in(pulse_level, timeout_us)
+    if result == 0:
+        return -1
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -298,3 +358,112 @@ class I2C:
         val: uint8 = self._i2c.read_nack()
         self._i2c.stop()
         return val
+
+
+# ---------------------------------------------------------------------------
+# freq: CPU clock frequency
+# ---------------------------------------------------------------------------
+
+@inline
+def freq() -> uint32:
+    # Returns the CPU clock frequency in Hz (compile-time constant from pyproject.toml).
+    return __FREQ__
+
+
+# ---------------------------------------------------------------------------
+# IRQ control
+# ---------------------------------------------------------------------------
+
+@inline
+def disable_irq() -> uint8:
+    # Disable global interrupts. Returns 1 so that enable_irq(state) can
+    # unconditionally re-enable on restore (MicroPython convention).
+    _disable_interrupts()
+    return 1
+
+
+@inline
+def enable_irq(state: uint8 = 1):
+    # Re-enable global interrupts. state is the value returned by disable_irq().
+    # Any non-zero state re-enables; zero leaves interrupts disabled.
+    if state != 0:
+        _enable_interrupts()
+
+
+# ---------------------------------------------------------------------------
+# Power / sleep
+# ---------------------------------------------------------------------------
+
+@inline
+def idle():
+    # Enter idle sleep (CPU halted, peripherals running). Wakes on any interrupt.
+    _sleep_idle()
+
+
+@inline
+def lightsleep():
+    # Enter light sleep (power-save mode). Keeps async timer running.
+    _sleep_power_save()
+
+
+@inline
+def deepsleep():
+    # Enter deep sleep (power-down mode). Wakes on external interrupt or WDT.
+    _sleep_power_down()
+
+
+# ---------------------------------------------------------------------------
+# Timer
+# ---------------------------------------------------------------------------
+
+class Timer:
+    ONE_SHOT  = 0
+    PERIODIC  = 1
+    IRQ_OVF   = 1
+    IRQ_COMPA = 2
+
+    @inline
+    def __init__(self, id: const[uint8], prescaler: uint16 = 64):
+        # id is a compile-time timer number (0, 1, 2 for AVR).
+        # prescaler selects the clock divider (e.g. 64 gives ~1 kHz tick at 16 MHz).
+        self._t = _Timer(id, prescaler)
+
+    @inline
+    def init(self, prescaler: uint16 = 64):
+        # Stop then restart the timer. prescaler is noted for API compatibility;
+        # changing prescaler requires creating a new Timer instance (ZCA constraint).
+        self._t.stop()
+        self._t.start()
+
+    @inline
+    def deinit(self):
+        # Stop the timer and disconnect its clock source.
+        self._t.stop()
+
+    @inline
+    def start(self):
+        self._t.start()
+
+    @inline
+    def irq(self, handler, trigger: uint8 = 1):
+        # Register an interrupt handler.
+        # trigger: Timer.IRQ_OVF (1) overflow, Timer.IRQ_COMPA (2) compare-match.
+        self._t.irq(handler, trigger)
+
+
+# ---------------------------------------------------------------------------
+# WDT (Watchdog Timer)
+# ---------------------------------------------------------------------------
+
+class WDT:
+    @inline
+    def __init__(self, id: uint8 = 0, timeout: uint16 = 5000):
+        # timeout is in milliseconds (MicroPython convention).
+        # id is accepted for API compatibility and ignored (single WDT on AVR).
+        self._wdt = _Watchdog(timeout)
+        self._wdt.enable()
+
+    @inline
+    def feed(self):
+        # Reset the watchdog counter. Must be called within the timeout period.
+        self._wdt.feed()

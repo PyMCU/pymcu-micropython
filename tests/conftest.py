@@ -40,13 +40,18 @@ def _install_hal_mocks() -> None:
             self._v = x
             return x
 
+        def init(self, mode=None, pull=None, **kw):
+            if mode is not None and mode != 255:
+                self._mode = mode
+
         def mode(self, m=None):
             if m is None:
                 return self._mode
             self._mode = m
 
-        def pull(self, p):      pass
-        def irq(self, trigger): pass
+        def pull(self, p):                          pass
+        def irq(self, trigger):                     pass
+        def pulse_in(self, state, timeout_us=1000): return 50
 
     class _MockUART:
         def __init__(self, baudrate=9600): pass
@@ -85,6 +90,22 @@ def _install_hal_mocks() -> None:
         def write(self, data):       pass
         def read(self):              return 0
 
+    class _MockTimer:
+        IRQ_OVF   = 1
+        IRQ_COMPA = 2
+        def __init__(self, n, prescaler=64):    pass
+        def start(self):                        pass
+        def stop(self):                         pass
+        def clear(self):                        pass
+        def set_compare(self, value):           pass
+        def irq(self, handler, mode=1):         pass
+
+    class _MockWatchdog:
+        def __init__(self, timeout_ms=500): pass
+        def enable(self):                   pass
+        def disable(self):                  pass
+        def feed(self):                     pass
+
     # --- register hal sub-modules --------------------------------------- #
 
     hal = ModuleType("pymcu.hal")
@@ -104,7 +125,15 @@ def _install_hal_mocks() -> None:
     _reg("pwm",      PWM=_MockPWM)
     _reg("spi",      SPI=_MockSPI)
     _reg("i2c",      I2C=_MockI2C)
-    _reg("watchdog", Watchdog=MagicMock)
+    _reg("timer",    Timer=_MockTimer)
+    _reg("watchdog", Watchdog=_MockWatchdog)
+    _reg("irq",
+         enable_interrupts=lambda: None,
+         disable_interrupts=lambda: None)
+    _reg("power",
+         sleep_idle=lambda: None,
+         sleep_power_save=lambda: None,
+         sleep_power_down=lambda: None)
 
     # --- pymcu.time (time.py / utime.py import delay_ms, delay_us) ------ #
     # The real pymcu.time imports __CHIP__ from pymcu.chips at module load,
@@ -121,6 +150,7 @@ def _install_hal_mocks() -> None:
 
     chips = ModuleType("pymcu.chips")
     chips.__CHIP__ = "atmega328p"
+    chips.__FREQ__ = 16_000_000
     chips.device_info = lambda: _DeviceInfo()
     sys.modules["pymcu.chips"] = chips
 
