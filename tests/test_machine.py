@@ -1,5 +1,9 @@
 from pymcu_micropython.machine import (
-    Pin, UART, ADC, PWM, SPI, I2C, _arduino_pin_name,
+    Pin, UART, ADC, PWM, SPI, I2C, _arduino_pin_name, time_pulse_us,
+    Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
+    IDLE, SLEEP, DEEPSLEEP,
+    PWRON_RESET, HARD_RESET, WDT_RESET, DEEPSLEEP_RESET, SOFT_RESET,
+    PIN_WAKE, RTC_WAKE, WLAN_WAKE,
 )
 
 
@@ -93,6 +97,43 @@ def test_pin_mode_read():
 def test_pin_mode_write():
     pin = Pin(2, Pin.IN)
     pin.mode(Pin.OUT)
+
+
+def test_pin_init_mode():
+    # Pin.init() is the standard MicroPython way to reinitialise a pin.
+    pin = Pin(2, Pin.IN)
+    pin.init(Pin.OUT)
+
+
+def test_pin_call_read():
+    # pin() is a fast shortcut for pin.value().
+    pin = Pin(2, Pin.IN)
+    v = pin(255)        # sentinel = read
+    assert v == 0
+
+
+def test_pin_call_write():
+    pin = Pin(13, Pin.OUT)
+    pin(1)
+    pin(0)
+
+
+# ── time_pulse_us ─────────────────────────────────────────────────────────  #
+
+def test_time_pulse_us_returns_duration():
+    # Mock _MockPin.pulse_in returns 50; time_pulse_us should relay that.
+    pin = Pin(2, Pin.IN)
+    dur = time_pulse_us(pin, 1, 200)
+    assert dur == 50
+
+
+def test_time_pulse_us_timeout_returns_minus_one():
+    # When pulse_in returns 0 (timeout), time_pulse_us returns -1.
+    import pymcu_micropython.machine as m_mod
+    original = pin_obj = Pin(2, Pin.IN)
+    pin_obj._pin.pulse_in = lambda state, timeout_us=1000: 0
+    result = time_pulse_us(pin_obj, 1, 200)
+    assert result == -1
 
 
 # ── UART ──────────────────────────────────────────────────────────────────  #
@@ -206,3 +247,147 @@ def test_i2c_scan_returns_int():
     count = i2c.scan()
     assert isinstance(count, int)
     assert count == 0  # mock always returns 0 from ping
+
+
+# ── Module-level constants ────────────────────────────────────────────────  #
+
+def test_sleep_mode_constants():
+    assert IDLE      == 0
+    assert SLEEP     == 1
+    assert DEEPSLEEP == 2
+
+
+def test_reset_cause_constants():
+    assert PWRON_RESET     == 0
+    assert HARD_RESET      == 1
+    assert WDT_RESET       == 2
+    assert DEEPSLEEP_RESET == 3
+    assert SOFT_RESET      == 4
+
+
+def test_wake_reason_constants():
+    assert PIN_WAKE  == 0
+    assert RTC_WAKE  == 1
+    assert WLAN_WAKE == 2
+
+
+# ── freq ─────────────────────────────────────────────────────────────────  #
+
+def test_freq_returns_integer():
+    f = freq()
+    assert isinstance(f, int)
+
+
+def test_freq_default_16mhz():
+    # conftest sets chips.__FREQ__ = 16_000_000
+    assert freq() == 16_000_000
+
+
+# ── disable_irq / enable_irq ─────────────────────────────────────────────  #
+
+def test_disable_irq_returns_nonzero():
+    state = disable_irq()
+    assert state != 0
+
+
+def test_enable_irq_nonzero_state():
+    # Should not raise; restores interrupts when state is truthy.
+    state = disable_irq()
+    enable_irq(state)
+
+
+def test_enable_irq_zero_state():
+    # Zero state leaves interrupts disabled (no call to enable_interrupts).
+    enable_irq(0)  # must not raise
+
+
+# ── idle / lightsleep / deepsleep ─────────────────────────────────────────  #
+
+def test_idle_callable():
+    idle()  # delegates to _sleep_idle mock; must not raise
+
+
+def test_lightsleep_callable():
+    lightsleep()  # delegates to _sleep_power_save mock
+
+
+def test_deepsleep_callable():
+    deepsleep()  # delegates to _sleep_power_down mock
+
+
+# ── Timer constants ───────────────────────────────────────────────────────  #
+
+def test_timer_mode_constants():
+    assert Timer.ONE_SHOT == 0
+    assert Timer.PERIODIC == 1
+
+
+def test_timer_irq_constants():
+    assert Timer.IRQ_OVF   == 1
+    assert Timer.IRQ_COMPA == 2
+
+
+# ── Timer instantiation and methods ──────────────────────────────────────  #
+
+def test_timer_instantiation():
+    t = Timer(0)
+    assert t is not None
+
+
+def test_timer_with_prescaler():
+    t = Timer(1, 256)
+    assert t is not None
+
+
+def test_timer_start():
+    t = Timer(0)
+    t.start()  # must not raise
+
+
+def test_timer_deinit():
+    t = Timer(0)
+    t.deinit()  # must not raise
+
+
+def test_timer_init():
+    t = Timer(0)
+    t.init()  # stop + restart; must not raise
+
+
+def test_timer_irq_registration():
+    t = Timer(0)
+    handler = lambda: None
+    t.irq(handler)  # must not raise
+
+
+def test_timer_irq_with_trigger():
+    t = Timer(0)
+    t.irq(lambda: None, Timer.IRQ_COMPA)
+
+
+# ── WDT constants and instantiation ──────────────────────────────────────  #
+
+def test_wdt_instantiation():
+    wdt = WDT()
+    assert wdt is not None
+
+
+def test_wdt_with_timeout():
+    wdt = WDT(timeout=2000)
+    assert wdt is not None
+
+
+def test_wdt_with_id_and_timeout():
+    wdt = WDT(id=0, timeout=8000)
+    assert wdt is not None
+
+
+def test_wdt_feed():
+    wdt = WDT(timeout=1000)
+    wdt.feed()  # must not raise
+
+
+def test_wdt_feed_multiple():
+    wdt = WDT(timeout=500)
+    for _ in range(5):
+        wdt.feed()  # repeated feeds must not raise
