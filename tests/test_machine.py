@@ -4,6 +4,7 @@ from pymcu_micropython.machine import (
     IDLE, SLEEP, DEEPSLEEP,
     PWRON_RESET, HARD_RESET, WDT_RESET, DEEPSLEEP_RESET, SOFT_RESET,
     PIN_WAKE, RTC_WAKE, WLAN_WAKE,
+    Signal, mem8, mem16,
 )
 
 
@@ -391,3 +392,105 @@ def test_wdt_feed_multiple():
     wdt = WDT(timeout=500)
     for _ in range(5):
         wdt.feed()  # repeated feeds must not raise
+
+
+# ── Signal ────────────────────────────────────────────────────────────────  #
+
+def test_signal_instantiation_active_high():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin)
+    assert sig is not None
+
+
+def test_signal_instantiation_active_low():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=1)
+    assert sig is not None
+
+
+def test_signal_on_active_high():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=0)
+    sig.on()
+    assert pin.value() == 1
+
+
+def test_signal_off_active_high():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=0)
+    sig.on()
+    sig.off()
+    assert pin.value() == 0
+
+
+def test_signal_on_active_low():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=1)
+    sig.on()
+    assert pin.value() == 0   # active-low: on() drives low
+
+
+def test_signal_off_active_low():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=1)
+    sig.on()
+    sig.off()
+    assert pin.value() == 1   # active-low: off() drives high
+
+
+def test_signal_value_read_active_high():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=0)
+    pin.high()
+    assert sig.value() == 1
+    pin.low()
+    assert sig.value() == 0
+
+
+def test_signal_value_read_active_low():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=1)
+    pin.high()
+    assert sig.value() == 0   # pin high -> signal inactive (0)
+    pin.low()
+    assert sig.value() == 1   # pin low  -> signal active (1)
+
+
+def test_signal_value_write_active_high():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=0)
+    sig.value(1)
+    assert pin.value() == 1
+    sig.value(0)
+    assert pin.value() == 0
+
+
+def test_signal_value_write_active_low():
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, invert=1)
+    sig.value(1)            # logical 1 -> drive pin low
+    assert pin.value() == 0
+    sig.value(0)            # logical 0 -> drive pin high
+    assert pin.value() == 1
+
+
+# ── mem8 / mem16 ──────────────────────────────────────────────────────────  #
+
+def test_mem8_exists():
+    assert mem8 is not None
+
+
+def test_mem8_has_subscript_interface():
+    # ptr raises RuntimeError in CPython (compile-only semantics).
+    # Verify the interface exists; actual reads/writes only work in firmware.
+    assert hasattr(mem8, '__getitem__')
+    assert hasattr(mem8, '__setitem__')
+
+
+def test_mem16_exists():
+    assert mem16 is not None
+
+
+def test_mem16_has_subscript_interface():
+    assert hasattr(mem16, '__getitem__')
+    assert hasattr(mem16, '__setitem__')

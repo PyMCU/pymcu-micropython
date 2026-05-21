@@ -106,6 +106,34 @@ def _install_hal_mocks() -> None:
         def disable(self):                  pass
         def feed(self):                     pass
 
+    class _MockSoftSPI:
+        CONTROLLER = 0
+        PERIPHERAL = 1
+        def __init__(self, sck, mosi, miso, mode=0, cs=None, baudrate=500): pass
+        def transfer(self, data):   return 0
+        def write(self, data):      pass
+        def exchange(self, data):   return 0
+        def receive(self):          return 0
+        def cs_asserted(self):      return 0
+        def select(self):           pass
+        def deselect(self):         pass
+
+    class _MockSoftI2C:
+        def __init__(self, scl, sda, half_us=5): pass
+        def init(self):                          pass
+        def start(self):                         pass
+        def stop(self):                          pass
+        def write(self, data):                   return 0
+        def read(self, send_ack):                return 0
+        def write_to(self, addr, data):          return 0
+        def read_from(self, addr):               return 0
+        def ping(self, addr):                    return 0
+
+    class _MockEEPROM:
+        def __init__(self):           pass
+        def write(self, addr, value): pass
+        def read(self, addr):         return 0
+
     # --- register hal sub-modules --------------------------------------- #
 
     hal = ModuleType("pymcu.hal")
@@ -134,6 +162,9 @@ def _install_hal_mocks() -> None:
          sleep_idle=lambda: None,
          sleep_power_save=lambda: None,
          sleep_power_down=lambda: None)
+    _reg("softspi",  SoftSPI=_MockSoftSPI)
+    _reg("softi2c",  SoftI2C=_MockSoftI2C)
+    _reg("eeprom",   EEPROM=_MockEEPROM)
 
     # --- pymcu.time (time.py / utime.py import delay_ms, delay_us) ------ #
     # The real pymcu.time imports __CHIP__ from pymcu.chips at module load,
