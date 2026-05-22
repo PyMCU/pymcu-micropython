@@ -23,7 +23,6 @@
 from machine import ADC
 from utime import sleep_ms
 from lm35 import LM35
-from pymcu.types import uint16
 
 
 sensor = LM35(ADC("A0"))
@@ -31,9 +30,5 @@ sensor = LM35(ADC("A0"))
 print("LM35 ready")
 
 while True:
-    tenths: uint16 = sensor.temperature_tenths()
-    int_part: uint16 = tenths // 10
-    frac_part: uint16 = tenths - int_part * 10
-
-    print("T: ", int_part, ".", frac_part, " C", sep="")
+    print("T: ", sensor.temperature(), " C", sep="")
     sleep_ms(1000)

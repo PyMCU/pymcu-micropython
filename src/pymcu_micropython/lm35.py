@@ -3,14 +3,12 @@
 # API:
 #   sensor = LM35(ADC("A0"))   # or LM35("A0") -- channel string also accepted
 #   sensor.read()              -- raw ADC count (0-1023)
-#   sensor.temperature()       -- integer degrees Celsius
-#   sensor.temperature_tenths()-- tenths of degrees C  (248 = 24.8 C)
+#   sensor.temperature()       -- degrees Celsius as float (e.g. 24.8)
 #
 # Conversion formula (5 V reference, 10-bit ADC):
-#   V_out  = ADC_raw * 5000 / 1024  (mV)
-#   Temp_C = V_out / 10             (LM35 outputs 10 mV/C)
-#   => Temp_C         = ADC_raw * 500  // 1024   (integer C)
-#   => Temp_tenths_C  = ADC_raw * 5000 // 1024   (tenths of C)
+#   V_out  = ADC_raw * 5000.0 / 1024  (mV)
+#   Temp_C = V_out / 10.0             (LM35 outputs 10 mV/C)
+#   => Temp_C = ADC_raw * 0.4882813
 #
 # Wiring (Arduino Uno / ATmega328P, 5 V supply):
 #   LM35 VS   -> +5 V
@@ -21,7 +19,7 @@
 # the 5 V rail as the ADC reference (default on Arduino Uno).  With a 3.3 V
 # supply replace the constant 500 with 330 and 5000 with 3300.
 
-from pymcu.types import uint16, uint32, inline
+from pymcu.types import uint16, inline
 from machine import ADC as _ADC
 
 
@@ -36,17 +34,6 @@ class LM35:
         return self._adc.read()
 
     @inline
-    def temperature(self) -> uint16:
-        # Integer degrees Celsius (truncated)
-        # Intermediate product fits in uint32: max 1023 * 500 = 511500
+    def temperature(self):
         raw: uint16 = self._adc.read()
-        t: uint32 = uint32(raw) * 500
-        return t // 1024
-
-    @inline
-    def temperature_tenths(self) -> uint16:
-        # Tenths of degrees Celsius, e.g. 248 = 24.8 C
-        # Intermediate product fits in uint32: max 1023 * 5000 = 5115000
-        raw: uint16 = self._adc.read()
-        t: uint32 = uint32(raw) * 5000
-        return t // 1024
+        return raw * 0.4882813
