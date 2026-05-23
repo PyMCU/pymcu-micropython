@@ -271,7 +271,11 @@ class PWM:
     @inline
     def __init__(self, pin, freq: uint16 = 1000, duty_u16: uint16 = 0):
         duty8: uint8 = duty_u16 >> 8   # scale 16-bit to 8-bit
-        self._pwm = _PWM(pin, duty8)
+        self._pwm = _PWM(pin, duty8, freq)
+
+    @inline
+    def freq(self, value: uint16):
+        self._pwm.set_freq(value)
 
     @inline
     def duty_u16(self, value: uint16):
