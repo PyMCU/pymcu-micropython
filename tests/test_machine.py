@@ -89,6 +89,23 @@ def test_pin_irq():
     pin.irq(Pin.IRQ_FALLING)
 
 
+def test_pin_irq_with_handler():
+    pin = Pin(2, Pin.IN)
+    handler = lambda: None
+    pin.irq(handler=handler, trigger=Pin.IRQ_FALLING)
+
+
+def test_pin_irq_handler_only():
+    # handler as positional argument (first param), trigger defaults to IRQ_FALLING
+    pin = Pin(2, Pin.IN)
+    pin.irq(lambda: None)
+
+
+def test_pin_irq_rising_with_handler():
+    pin = Pin(2, Pin.IN)
+    pin.irq(lambda: None, Pin.IRQ_RISING)
+
+
 def test_pin_mode_read():
     pin = Pin(13, Pin.OUT)
     m = pin.mode()
@@ -364,6 +381,59 @@ def test_timer_irq_registration():
 def test_timer_irq_with_trigger():
     t = Timer(0)
     t.irq(lambda: None, Timer.IRQ_COMPA)
+
+
+# ── Timer.init(period, mode, callback) ───────────────────────────────────  #
+
+def test_timer_init_with_period():
+    t = Timer(1)
+    t.init(period=100, mode=Timer.PERIODIC, callback=lambda: None)
+
+
+def test_timer_init_period_short():
+    # period <= 262 ms -> prescaler=64 path
+    t = Timer(1)
+    t.init(period=50, callback=lambda: None)
+
+
+def test_timer_init_period_long():
+    # period > 262 ms -> prescaler=1024 path
+    t = Timer(1)
+    t.init(period=500, callback=lambda: None)
+
+
+def test_timer_init_no_period_uses_prescaler():
+    # No period -> plain start() path; prescaler override accepted
+    t = Timer(0)
+    t.init(prescaler=256)
+
+
+def test_timer_init_no_period_no_args():
+    t = Timer(0)
+    t.init()  # stop + start; must not raise
+
+
+def test_timer_init_one_shot():
+    t = Timer(1)
+    t.init(period=200, mode=Timer.ONE_SHOT, callback=lambda: None)
+
+
+# ── Timer(-1, period=ms, callback=cb) constructor form ───────────────────  #
+
+def test_timer_auto_id_with_period():
+    # Timer(-1, ...) in MicroPython; use 255 as sentinel in PyMCU
+    t = Timer(255, period=100, callback=lambda: None)
+    assert t is not None
+
+
+def test_timer_constructor_period_callback():
+    t = Timer(1, period=500, mode=Timer.PERIODIC, callback=lambda: None)
+    assert t is not None
+
+
+def test_timer_constructor_no_period_still_works():
+    t = Timer(0)
+    assert t is not None
 
 
 # ── WDT constants and instantiation ──────────────────────────────────────  #

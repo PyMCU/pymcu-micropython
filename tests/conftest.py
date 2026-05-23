@@ -50,7 +50,7 @@ def _install_hal_mocks() -> None:
             self._mode = m
 
         def pull(self, p):                          pass
-        def irq(self, trigger):                     pass
+        def irq(self, trigger=None, handler=None):          pass
         def pulse_in(self, state, timeout_us=1000): return 50
 
     class _MockUART:
@@ -98,6 +98,7 @@ def _install_hal_mocks() -> None:
         def stop(self):                         pass
         def clear(self):                        pass
         def set_compare(self, value):           pass
+        def reinit(self, prescaler):            pass
         def irq(self, handler, mode=1):         pass
 
     class _MockWatchdog:
@@ -153,7 +154,7 @@ def _install_hal_mocks() -> None:
     _reg("pwm",      PWM=_MockPWM)
     _reg("spi",      SPI=_MockSPI)
     _reg("i2c",      I2C=_MockI2C)
-    _reg("timer",    Timer=_MockTimer)
+    _reg("timer",    Timer=_MockTimer, millis=lambda: 0, millis_init=lambda: None)
     _reg("watchdog", Watchdog=_MockWatchdog)
     _reg("irq",
          enable_interrupts=lambda: None,
