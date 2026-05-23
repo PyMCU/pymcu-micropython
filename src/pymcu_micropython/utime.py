@@ -8,7 +8,7 @@
 #   sleep_ms(500)
 #   sleep_us(100)
 
-from pymcu.types import uint8, uint16, inline
+from pymcu.types import uint8, uint16, uint32, inline
 from pymcu.time import delay_ms, delay_us
 
 
@@ -29,13 +29,14 @@ def sleep(seconds: uint16):
 
 
 @inline
-def ticks_ms() -> uint16:
-    # Stub: no hardware timestamp without a free-running timer.
-    # Returns 0. Use Timer0/1/2 + @interrupt for real timestamps.
-    return 0
+def ticks_ms() -> uint32:
+    # Returns elapsed milliseconds since millis_init() was called.
+    # millis_init() is auto-injected by the build driver when ticks_ms() usage
+    # is detected in user code -- no explicit setup required.
+    from pymcu.hal.timer import millis
+    return millis()
 
 
 @inline
-def ticks_diff(new_ticks: uint16, old_ticks: uint16) -> uint16:
-    # Stub: returns difference (works for 0-based stubs).
+def ticks_diff(new_ticks: uint32, old_ticks: uint32) -> uint32:
     return new_ticks - old_ticks
