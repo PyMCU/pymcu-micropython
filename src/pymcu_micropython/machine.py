@@ -17,7 +17,7 @@
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
 #   Pin number -> string name resolution happens at compile time via match/case.
 
-from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr
+from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr, Callable
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.uart import UART as _UART
 from pymcu.hal.adc import AnalogPin as _AnalogPin
@@ -429,21 +429,23 @@ class Timer:
     @inline
     def __init__(self, id: const[uint8] = 255, prescaler: uint16 = 64,
                  period: const[uint16] = 0, mode: const[uint8] = 1,
-                 callback: const = 0):
+                 callback: Callable = 0):
         # id: compile-time timer number (0, 1, 2 for AVR).
         # id=255 is a sentinel for MicroPython Timer(-1) "auto-pick";
         # maps to Timer1 (16-bit, best range for period=ms API).
         # If period != 0, auto-configure CTC mode with the given period in ms.
-        actual_id: uint8 = id
+        # Use CT branching on id directly so _Timer() receives a CT constant,
+        # keeping self._t._id as a CT string for timer dispatch in irq().
         if id == 255:
-            actual_id = 1
-        self._t = _Timer(actual_id, prescaler)
+            self._t = _Timer(1, prescaler)
+        else:
+            self._t = _Timer(id, prescaler)
         if period != 0:
             self.init(period=period, mode=mode, callback=callback)
 
     @inline
     def init(self, period: const[uint16] = 0, mode: const[uint8] = 1,
-             callback: const = 0, prescaler: uint16 = 0):
+             callback: Callable = 0, prescaler: uint16 = 0):
         # MicroPython-compatible init().
         # period: desired interval in milliseconds (compile-time constant).
         # mode:   Timer.ONE_SHOT (0) or Timer.PERIODIC (1, default).
@@ -464,6 +466,7 @@ class Timer:
             self._t.set_compare(ocr)
             if callback != 0:
                 self._t.irq(callback, Timer.IRQ_COMPA)
+            _enable_interrupts()
         else:
             if prescaler != 0:
                 self._t.reinit(prescaler)
