@@ -167,7 +167,7 @@ class Pin:
         return self.value(x)
 
     @inline
-    def irq(self, handler: const = 0, trigger: uint8 = IRQ_FALLING):
+    def irq(self, handler: Callable = 0, trigger: uint8 = IRQ_FALLING):
         self._pin.irq(trigger, handler)
 
     @inline
@@ -482,7 +482,7 @@ class Timer:
         self._t.start()
 
     @inline
-    def irq(self, handler, trigger: uint8 = 1):
+    def irq(self, handler: Callable, trigger: uint8 = 1):
         # Register an interrupt handler.
         # trigger: Timer.IRQ_OVF (1) overflow, Timer.IRQ_COMPA (2) compare-match.
         self._t.irq(handler, trigger)
