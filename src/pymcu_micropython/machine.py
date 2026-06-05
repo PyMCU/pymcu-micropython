@@ -97,6 +97,18 @@ def _arduino_pin_name(n: const[uint8]) -> str:
             return "PB4"
         case 13:
             return "PB5"
+        case 14:
+            return "PC0"
+        case 15:
+            return "PC1"
+        case 16:
+            return "PC2"
+        case 17:
+            return "PC3"
+        case 18:
+            return "PC4"
+        case 19:
+            return "PC5"
         case _:
             return "PB5"
 
@@ -120,11 +132,10 @@ class Pin:
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8] = 1):
-        # pin_id is an Arduino Uno integer pin number (0-13).
-        # _arduino_pin_name converts it to a port string at compile time via DCE.
-        # machine.Pin constants now match hal.gpio.Pin: OUT=0, IN=1.
-        # Use explicit branches so the compiler sees constant HAL mode values.
-        self._pin = _Pin(_arduino_pin_name(pin_id), mode)
+        # pin_id: Arduino Uno integer (0-13 digital, 14-19 = A0-A5 analog).
+        # _name stores the CT-resolved port string so PWM/ADC can retrieve it.
+        self._name = _arduino_pin_name(pin_id)
+        self._pin = _Pin(self._name, mode)
 
     @inline
     def high(self):
@@ -168,6 +179,10 @@ class Pin:
 
     @inline
     def irq(self, handler: Callable = 0, trigger: uint8 = IRQ_FALLING):
+        # Registers handler at the correct ISR vector via compile_isr().
+        # PyMCU deviation: handler takes no arguments (ISRs are parameterless).
+        # In MicroPython the callback receives the Pin instance; use a global
+        # variable to communicate state between the ISR and the main loop.
         self._pin.irq(trigger, handler)
 
     @inline
@@ -231,9 +246,10 @@ class UART:
 
 class ADC:
     @inline
-    def __init__(self, pin):
-        # pin may be a Pin instance or a channel name string ("A0", "A1", ...).
-        self._adc = _AnalogPin(pin)
+    def __init__(self, pin: Pin):
+        # pin: machine.Pin instance. Use Pin(14)-Pin(19) for A0-A5 on Arduino Uno.
+        # Extracts the CT port string (e.g. "PC0") from pin._name for the HAL.
+        self._adc = _AnalogPin(pin._name)
 
     @inline
     def read(self) -> uint16:
@@ -269,9 +285,11 @@ class ADC:
 
 class PWM:
     @inline
-    def __init__(self, pin, freq: uint16 = 1000, duty_u16: uint16 = 0):
-        duty8: uint8 = duty_u16 >> 8   # scale 16-bit to 8-bit
-        self._pwm = _PWM(pin, duty8, freq)
+    def __init__(self, pin: Pin, freq: uint16 = 1000, duty_u16: uint16 = 0):
+        # pin: machine.Pin instance on a PWM-capable GPIO (D3/D5/D6/D9/D10/D11 on Uno).
+        # Extracts the CT port string from pin._name for the HAL.
+        duty8: uint8 = duty_u16 >> 8
+        self._pwm = _PWM(pin._name, duty8, freq)
 
     @inline
     def freq(self, value: uint16):
@@ -397,6 +415,12 @@ def enable_irq(state: uint8 = 1):
 # ---------------------------------------------------------------------------
 # Power / sleep
 # ---------------------------------------------------------------------------
+
+@inline
+def reset():
+    # Soft reset: jump to address 0 to re-run the startup stub.
+    asm("jmp 0")
+
 
 @inline
 def idle():

@@ -11,14 +11,14 @@
 # Expected behaviour:
 #   Prints ADC value every 200 ms over UART at 9600 baud
 
-from machine import UART, ADC
+from machine import UART, ADC, Pin
 from utime import sleep_ms
 from pymcu.types import uint16
 
 
 def main():
     uart = UART(0, 9600)
-    adc  = ADC("A0")
+    adc  = ADC(Pin(14))   # Pin(14) = A0 = PC0
 
     uart.println("ADC ready")
 

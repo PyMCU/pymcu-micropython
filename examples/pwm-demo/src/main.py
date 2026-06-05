@@ -22,7 +22,7 @@ from pymcu.types import uint8
 from utime import sleep_us
 
 # Hardware PWM: D6 = PD6 = OC0A (Timer0 Fast PWM, ~490 Hz at 16 MHz)
-hw = PWM("PD6")
+hw = PWM(Pin(6))
 hw.init()
 
 # Soft PWM: D13 = PB5 (built-in LED, any digital output pin works)

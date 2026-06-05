@@ -1,14 +1,14 @@
 # MicroPython-compatible utime module for PyMCU
 #
-# Provides sleep_ms(), sleep_us(), and ticks_ms() that map to the underlying
-# PyMCU delay functions (no runtime overhead).
+# Provides sleep_ms(), sleep_us(), ticks_ms(), ticks_us() that map to the
+# underlying PyMCU delay/timer functions (no runtime overhead).
 #
 # Usage:
-#   from utime import sleep_ms, sleep_us
+#   from utime import sleep_ms, sleep_us, ticks_ms, ticks_us
 #   sleep_ms(500)
-#   sleep_us(100)
+#   sleep_us(1000)
 
-from pymcu.types import uint8, uint16, uint32, inline
+from pymcu.types import uint16, uint32, inline
 from pymcu.time import delay_ms, delay_us
 
 
@@ -18,7 +18,7 @@ def sleep_ms(ms: uint16):
 
 
 @inline
-def sleep_us(us: uint8):
+def sleep_us(us: uint16):
     delay_us(us)
 
 
@@ -35,6 +35,21 @@ def ticks_ms() -> uint32:
     # is detected in user code -- no explicit setup required.
     from pymcu.hal.timer import millis
     return millis()
+
+
+@inline
+def ticks_us() -> uint32:
+    # Returns elapsed microseconds (4 us resolution at 16 MHz, prescaler 64).
+    # Requires millis_init() to have been called (auto-injected with ticks_ms()).
+    from pymcu.hal.timer import micros
+    return micros()
+
+
+@inline
+def ticks_cpu() -> uint32:
+    # Alias for ticks_us() -- MicroPython standard on ports without a separate CPU timer.
+    from pymcu.hal.timer import micros
+    return micros()
 
 
 @inline

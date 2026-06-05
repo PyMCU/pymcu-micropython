@@ -20,12 +20,12 @@
 #   Boot:   "LM35 ready"
 #   Every 1 s:  "T: 24.8 C"   (integer part + tenths combined)
 
-from machine import ADC
+from machine import ADC, Pin
 from utime import sleep_ms
 from lm35 import LM35
 
 
-sensor = LM35(ADC("A0"))
+sensor = LM35(ADC(Pin(14)))   # A0 = Pin(14) = PC0
 
 print("LM35 ready")
 
