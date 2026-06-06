@@ -24,13 +24,13 @@
 #   4. Checksum = lower 8 bits of sum of the first 4 bytes
 
 from pymcu.types import uint8, inline
-from machine import Pin as _Pin, time_pulse_us
-from pymcu.time import delay_ms, delay_us
+from machine import Pin, time_pulse_us
+from utime import sleep_ms, sleep_us
 
 
 class DHTBase:
     @inline
-    def __init__(self, pin: _Pin):
+    def __init__(self, pin: Pin):
         self._pin      = pin
         self.failed    = False
         self._hum_int  = 0
@@ -43,12 +43,12 @@ class DHTBase:
         # Start signal: hold low >= 18 ms, then pull high 20-40 us before
         # releasing to input.  The high() call leaves PORT bit = 1 so that
         # mode(IN) enables the AVR internal pull-up (PORT=1, DDR=0).
-        self._pin.mode(_Pin.OUT)
+        self._pin.mode(Pin.OUT)
         self._pin.low()
-        delay_ms(18)
+        sleep_ms(18)
         self._pin.high()
-        delay_us(30)
-        self._pin.mode(_Pin.IN)
+        sleep_us(30)
+        self._pin.mode(Pin.IN)
 
         # ACK: sensor pulls low ~80 us, then high ~80 us
         if time_pulse_us(self._pin, 0, 1000) < 0:
