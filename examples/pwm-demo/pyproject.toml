@@ -3,9 +3,9 @@ name = "pwm-demo"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
-    "pymcu-stdlib>=0.1.2a5",
-    "pymcu>=0.1.0a27",
-    "pymcu-micropython>=0.1.0",
+    "pymcu-stdlib>=0.1.0a1",
+    "pymcu-compiler[avr]>=0.1.0a1",
+    "pymcu-micropython>=0.1.0a1",
 ]
 
 [tool.pymcu]
@@ -17,4 +17,4 @@ stdlib    = ["micropython"]
 
 [tool.pymcu.flash]
 programmer = "avrdude"
-port       = "/dev/cu.usbmodem31201"
+# port = "/dev/cu.usbmodemXXXX"   # set your board port here, or pass --port
