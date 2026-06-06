@@ -487,40 +487,68 @@ class Timer:
     @inline
     def __init__(self, id: const[uint8] = 255, prescaler: uint16 = 64,
                  period: const[uint16] = 0, mode: const[uint8] = 1,
-                 callback: Callable = 0):
+                 callback: Callable = 0, freq: const[uint32] = 0):
         # id: compile-time timer number (0, 1, 2 for AVR).
         # id=255 is a sentinel for MicroPython Timer(-1) "auto-pick";
         # maps to Timer1 (16-bit, best range for period=ms API).
-        # If period != 0, auto-configure CTC mode with the given period in ms.
+        # If period != 0 or freq != 0, auto-configure CTC mode.
         # Use CT branching on id directly so _Timer() receives a CT constant,
         # keeping self._t._id as a CT string for timer dispatch in irq().
         if id == 255:
             self._t = _Timer(1, prescaler)
         else:
             self._t = _Timer(id, prescaler)
-        if period != 0:
+        if freq != 0:
+            self.init(freq=freq, mode=mode, callback=callback)
+        elif period != 0:
             self.init(period=period, mode=mode, callback=callback)
 
     @inline
     def init(self, period: const[uint16] = 0, mode: const[uint8] = 1,
-             callback: Callable = 0, prescaler: uint16 = 0):
+             callback: Callable = 0, prescaler: uint16 = 0,
+             freq: const[uint32] = 0):
         # MicroPython-compatible init().
         # period: desired interval in milliseconds (compile-time constant).
+        # freq:   desired frequency in Hz (compile-time constant).
+        #         Takes precedence over period when both are supplied.
         # mode:   Timer.ONE_SHOT (0) or Timer.PERIODIC (1, default).
-        # callback: function called on each tick (no arguments, like MicroPython).
-        # prescaler: low-level override; ignored when period != 0.
+        # callback: called on each tick.
+        # prescaler: low-level override; ignored when period or freq is set.
         #
-        # Period-to-prescaler mapping for AVR @ 16 MHz using Timer1 (16-bit):
+        # Prescaler selection for AVR Timer1 @ 16 MHz (16-bit, OCR fits uint16):
+        #   freq >= 245 Hz: prescaler=1,    OCR = 16 000 000 / freq - 1
+        #   freq >=  31 Hz: prescaler=8,    OCR =  2 000 000 / freq - 1
+        #   freq >=   4 Hz: prescaler=64,   OCR =    250 000 / freq - 1
+        #   freq >=   1 Hz: prescaler=1024, OCR =     15 625 / freq - 1
+        #
+        # Period-to-prescaler mapping:
         #   period <= 262 ms: prescaler=64,   OCR = 250 * period - 1  (exact)
         #   period <= 4194 ms: prescaler=1024, OCR = 15 * period       (~0.6 ms error/step)
         self._t.stop()
-        if period != 0:
+        if freq != 0:
+            if freq >= 245:
+                self._t.reinit(1)
+                ocr: uint16 = uint16(16000000 // freq - 1)
+            elif freq >= 31:
+                self._t.reinit(8)
+                ocr: uint16 = uint16(2000000 // freq - 1)
+            elif freq >= 4:
+                self._t.reinit(64)
+                ocr: uint16 = uint16(250000 // freq - 1)
+            else:
+                self._t.reinit(1024)
+                ocr: uint16 = uint16(15625 // freq - 1)
+            self._t.set_compare(ocr)
+            if callback != 0:
+                self._t.irq(callback, Timer.IRQ_COMPA)
+            _enable_interrupts()
+        elif period != 0:
             if period <= 262:
                 self._t.reinit(64)
                 ocr: uint16 = uint16(250 * period - 1)
             else:
                 self._t.reinit(1024)
-                ocr = uint16(15 * period)
+                ocr: uint16 = uint16(15 * period)
             self._t.set_compare(ocr)
             if callback != 0:
                 self._t.irq(callback, Timer.IRQ_COMPA)
