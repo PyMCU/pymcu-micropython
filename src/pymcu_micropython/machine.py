@@ -257,7 +257,7 @@ class UART:
         # Reads bytes until '\n' (or max_len-1 bytes) into buf. Returns byte count
         # stored (excludes newline; null-terminator written at buf[count]).
         # Deviation: MicroPython readline() returns a bytes object with no args.
-        # PyMCU requires a caller-provided buffer to avoid heap allocation.
+        # PyMCU uses a caller-provided buffer to avoid GC overhead.
         return self._hw.read_line(buf, max_len)
 
     @inline
@@ -409,7 +409,7 @@ class I2C:
 
     @inline
     def scan(self) -> uint8:
-        # Returns number of responding devices (not a list -- no heap).
+        # Returns number of responding devices (not a list).
         # Deviation: MicroPython scan() returns a list of addresses.
         # Use scan(buf, max_count) to also capture the addresses.
         count: uint8 = 0
