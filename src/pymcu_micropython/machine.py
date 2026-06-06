@@ -409,14 +409,30 @@ class I2C:
 
     @inline
     def scan(self) -> uint8:
-        # Simplified: returns number of responding devices (not a list -- no heap).
-        # For a full scan, use pymcu.hal.i2c.I2C directly.
+        # Returns number of responding devices (not a list -- no heap).
+        # Deviation: MicroPython scan() returns a list of addresses.
+        # Use scan(buf, max_count) to also capture the addresses.
         count: uint8 = 0
         addr: uint8 = 1
         while addr < 128:
             if self._i2c.ping(addr):
                 count += 1
             addr += 1
+        return count
+
+    @inline
+    def scan(self, buf: bytearray, max_count: uint8) -> uint8:
+        # Scans addresses 0x01-0x7F; stores each responding address in buf.
+        # Returns the number of devices found (up to max_count).
+        # Deviation: MicroPython scan() returns a list; PyMCU uses caller-owned buffer.
+        count: uint8 = 0
+        addr: uint8 = 1
+        while addr < 128:
+            if self._i2c.ping(addr):
+                if count < max_count:
+                    buf[count] = addr
+                    count = count + 1
+            addr = addr + 1
         return count
 
     @inline
