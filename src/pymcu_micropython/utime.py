@@ -55,3 +55,9 @@ def ticks_cpu() -> uint32:
 @inline
 def ticks_diff(new_ticks: uint32, old_ticks: uint32) -> uint32:
     return new_ticks - old_ticks
+
+
+@inline
+def ticks_add(ticks: uint32, delta: uint32) -> uint32:
+    # Returns ticks + delta, wrapping at the 32-bit boundary (same as MicroPython).
+    return ticks + delta
