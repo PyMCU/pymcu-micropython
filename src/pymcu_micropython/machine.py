@@ -133,9 +133,27 @@ class Pin:
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8] = 1):
         # pin_id: Arduino Uno integer (0-13 digital, 14-19 = A0-A5 analog).
-        # _name stores the CT-resolved port string so PWM/ADC can retrieve it.
         self._name = _arduino_pin_name(pin_id)
         self._pin = _Pin(self._name, mode)
+
+    @inline
+    def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
+        # Three-arg form: Pin(2, Pin.IN, Pin.PULL_UP).
+        # pull: Pin.PULL_UP (1) enables the AVR internal pull-up resistor.
+        self._name = _arduino_pin_name(pin_id)
+        self._pin = _Pin(self._name, mode, pull)
+
+    @inline
+    def __init__(self, pin_id: const[str], mode: const[uint8] = 1):
+        # Direct port-string form: Pin("PB5", Pin.OUT).
+        self._name = pin_id
+        self._pin = _Pin(self._name, mode)
+
+    @inline
+    def __init__(self, pin_id: const[str], mode: const[uint8], pull: const[uint8]):
+        # String + pull: Pin("PD2", Pin.IN, Pin.PULL_UP).
+        self._name = pin_id
+        self._pin = _Pin(self._name, mode, pull)
 
     @inline
     def high(self):
