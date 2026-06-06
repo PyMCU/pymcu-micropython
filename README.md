@@ -10,8 +10,8 @@ MicroPython standard-library flavor for **PyMCU** — an AOT (ahead-of-time) Pyt
 
 | Module | MicroPython equivalent | Description |
 |--------|------------------------|-------------|
-| `machine` | `machine` | `Pin`, `UART`, `ADC`, `PWM`, `SPI`, `I2C` |
-| `utime` | `utime` / `time` | `sleep_ms()`, `sleep_us()`, `sleep()`, `ticks_ms()`, `ticks_diff()` |
+| `machine` | `machine` | `Pin`, `UART`, `ADC`, `PWM`, `SPI`, `I2C`, `Timer`, `WDT`, `Signal` |
+| `utime` | `utime` / `time` | `sleep_ms()`, `sleep_us()`, `sleep()`, `ticks_ms()`, `ticks_us()`, `ticks_diff()`, `ticks_add()` |
 | `micropython` | `micropython` | `const()`, `@native`, `@viper` stubs |
 
 ## Installation
