@@ -388,12 +388,31 @@ class SPI:
         self._spi.write(data)
 
     @inline
+    def write(self, buf: bytearray, n: uint8):
+        # Multi-byte write. Deviation: MicroPython write(buf) infers len(buf);
+        # PyMCU requires explicit n (fixed arrays have no runtime len).
+        self._spi.write_bytes(buf, n)
+
+    @inline
     def read(self, write_byte: uint8 = 0xFF) -> uint8:
         return self._spi.transfer(write_byte)
 
     @inline
+    def readinto(self, buf: bytearray, n: uint8, write_byte: uint8 = 0xFF):
+        # Multi-byte read into caller buffer. Sends write_byte as dummy for each byte.
+        # Deviation: MicroPython readinto(buf) fills up to len(buf) with write=0x00;
+        # PyMCU requires explicit n and defaults write_byte to 0xFF.
+        self._spi.readinto_n(buf, n, write_byte)
+
+    @inline
     def write_readinto(self, out: uint8, in_val: uint8) -> uint8:
         return self._spi.transfer(out)
+
+    @inline
+    def write_readinto(self, write_buf: bytearray, read_buf: bytearray, n: uint8):
+        # Multi-byte full-duplex. Deviation: MicroPython write_readinto(write_buf, read_buf)
+        # infers len; PyMCU requires explicit n.
+        self._spi.write_readinto_n(write_buf, read_buf, n)
 
 
 # ---------------------------------------------------------------------------
