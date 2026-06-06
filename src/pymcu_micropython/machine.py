@@ -253,6 +253,25 @@ class UART:
         return self._hw.read()
 
     @inline
+    def readline(self, buf: bytearray, max_len: uint8) -> uint8:
+        # Reads bytes until '\n' (or max_len-1 bytes) into buf. Returns byte count
+        # stored (excludes newline; null-terminator written at buf[count]).
+        # Deviation: MicroPython readline() returns a bytes object with no args.
+        # PyMCU requires a caller-provided buffer to avoid heap allocation.
+        return self._hw.read_line(buf, max_len)
+
+    @inline
+    def readinto(self, buf: bytearray, nbytes: uint8) -> uint8:
+        # Reads exactly nbytes bytes from UART into buf (blocking per byte).
+        # Returns nbytes. Deviation: MicroPython readinto(buf) fills up to len(buf);
+        # PyMCU requires explicit nbytes since buf capacity may differ.
+        i: uint8 = 0
+        while i < nbytes:
+            buf[i] = self._hw.read()
+            i = i + 1
+        return nbytes
+
+    @inline
     def any(self) -> uint8:
         # Returns 1 if at least one byte is waiting in the receive buffer (RXC0).
         # Standard MicroPython: uart.any() -> number of bytes available.
@@ -260,17 +279,17 @@ class UART:
 
     @inline
     def write_str(self, s: const[str]):
-        # PyMCU extension — prefer write(str) for portability.
+        # PyMCU extension -- prefer write(str) for portability.
         self._hw.write_str(s)
 
     @inline
     def println(self, s: const[str]):
-        # PyMCU extension — prefer write(str) + write(10) for portability.
+        # PyMCU extension -- prefer write(str) + write(10) for portability.
         self._hw.println(s)
 
     @inline
     def print_byte(self, value: uint8):
-        # PyMCU extension — prefer uart_write_decimal_u8 directly for portability.
+        # PyMCU extension -- prefer uart_write_decimal_u8 directly for portability.
         self._hw.print_byte(value)
 
 
