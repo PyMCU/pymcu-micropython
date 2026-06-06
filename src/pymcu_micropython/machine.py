@@ -443,12 +443,26 @@ class I2C:
         self._i2c.stop()
 
     @inline
+    def writeto(self, addr: uint8, buf: bytearray, n: uint8):
+        # Multi-byte write: sends n bytes from buf to device at addr.
+        # Deviation: MicroPython writeto(addr, buf) infers len(buf);
+        # PyMCU requires explicit n (fixed arrays have no runtime len).
+        self._i2c.write_bytes(addr, buf, n)
+
+    @inline
     def readfrom(self, addr: uint8) -> uint8:
         self._i2c.start()
         self._i2c.write((addr << 1) | 1)
         val: uint8 = self._i2c.read_nack()
         self._i2c.stop()
         return val
+
+    @inline
+    def readfrom_into(self, addr: uint8, buf: bytearray, n: uint8) -> uint8:
+        # Reads n bytes from device at addr into buf. Returns 1 on success, 0 on NACK.
+        # Deviation: MicroPython readfrom(addr, nbytes) returns a bytes object;
+        # PyMCU uses a caller-owned buffer to avoid GC overhead.
+        return self._i2c.read_n(addr, buf, n)
 
 
 # ---------------------------------------------------------------------------
