@@ -76,7 +76,6 @@ class DHTBase:
         self._temp_int = temp_int
         self._temp_dec = temp_dec
 
-    @inline
     def _read_byte(self) -> uint8:
         result: uint8 = 0
         bit: uint8 = 0
