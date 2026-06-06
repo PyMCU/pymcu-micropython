@@ -179,10 +179,11 @@ class Pin:
 
     @inline
     def irq(self, handler: Callable = 0, trigger: uint8 = IRQ_FALLING):
-        # Registers handler at the correct ISR vector via compile_isr().
-        # PyMCU deviation: handler takes no arguments (ISRs are parameterless).
-        # In MicroPython the callback receives the Pin instance; use a global
-        # variable to communicate state between the ISR and the main loop.
+        # Standard MicroPython API: handler(pin) receives this Pin instance.
+        # The compiler synthesizes a parameterless ISR wrapper that inlines
+        # handler with self's ZCA constants, so pin.value() etc. resolve
+        # at compile time with zero runtime overhead.
+        _set_irq_zca_arg(handler, self)
         self._pin.irq(trigger, handler)
 
     @inline
