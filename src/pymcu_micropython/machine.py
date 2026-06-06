@@ -225,19 +225,34 @@ class UART:
         self._hw.write(data)
 
     @inline
+    def write(self, data: const[str]):
+        # Overload: write a compile-time string literal (e.g. uart.write("OK\n")).
+        # Maps to write_str; equivalent to uart.write(b"OK\n") in standard MicroPython.
+        self._hw.write_str(data)
+
+    @inline
     def read(self) -> uint8:
         return self._hw.read()
 
     @inline
+    def any(self) -> uint8:
+        # Returns 1 if at least one byte is waiting in the receive buffer (RXC0).
+        # Standard MicroPython: uart.any() -> number of bytes available.
+        return self._hw.available()
+
+    @inline
     def write_str(self, s: const[str]):
+        # PyMCU extension — prefer write(str) for portability.
         self._hw.write_str(s)
 
     @inline
     def println(self, s: const[str]):
+        # PyMCU extension — prefer write(str) + write(10) for portability.
         self._hw.println(s)
 
     @inline
     def print_byte(self, value: uint8):
+        # PyMCU extension — prefer uart_write_decimal_u8 directly for portability.
         self._hw.print_byte(value)
 
 
@@ -508,8 +523,11 @@ class Timer:
 
     @inline
     def irq(self, handler: Callable, trigger: uint8 = 1):
-        # Register an interrupt handler.
+        # Standard MicroPython API: handler(timer) receives this Timer instance.
+        # The compiler synthesizes a parameterless ISR wrapper with self's ZCA
+        # constants bound, so timer.start()/deinit() etc. resolve at compile time.
         # trigger: Timer.IRQ_OVF (1) overflow, Timer.IRQ_COMPA (2) compare-match.
+        _set_irq_zca_arg(handler, self)
         self._t.irq(handler, trigger)
 
 
