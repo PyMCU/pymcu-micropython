@@ -20,12 +20,13 @@
 from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr, Callable
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.uart import UART as _UART
-from pymcu.hal.adc import AnalogPin as _AnalogPin
-from pymcu.hal.pwm import PWM as _PWM
-from pymcu.hal.spi import SPI as _SPI
-from pymcu.hal.i2c import I2C as _I2C
-from pymcu.hal.timer import Timer as _Timer
-from pymcu.hal.watchdog import Watchdog as _Watchdog
+if __CHIP__.arch == "avr":
+    from pymcu.hal.adc import AnalogPin as _AnalogPin
+    from pymcu.hal.pwm import PWM as _PWM
+    from pymcu.hal.spi import SPI as _SPI
+    from pymcu.hal.i2c import I2C as _I2C
+    from pymcu.hal.timer import Timer as _Timer
+    from pymcu.hal.watchdog import Watchdog as _Watchdog
 from pymcu.hal.power import (
     sleep_idle as _sleep_idle,
     sleep_power_save as _sleep_power_save,
@@ -35,7 +36,7 @@ from pymcu.hal.irq import (
     enable_interrupts as _enable_interrupts,
     disable_interrupts as _disable_interrupts,
 )
-from pymcu.chips import __FREQ__
+from pymcu.chips import __CHIP__, __FREQ__
 
 # ---------------------------------------------------------------------------
 # Module-level constants (MicroPython machine module compatibility)
@@ -132,16 +133,21 @@ class Pin:
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8] = 1):
-        # pin_id: Arduino Uno integer (0-13 digital, 14-19 = A0-A5 analog).
-        self._name = _arduino_pin_name(pin_id)
-        self._pin = _Pin(self._name, mode)
+        if __CHIP__.arch == "rp2040":
+            # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
+            self._pin = _Pin(pin_id, mode)
+        else:
+            # AVR: integer -> Arduino Uno port string (PD0, PB5, ...).
+            self._name = _arduino_pin_name(pin_id)
+            self._pin = _Pin(self._name, mode)
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
-        # Three-arg form: Pin(2, Pin.IN, Pin.PULL_UP).
-        # pull: Pin.PULL_UP (1) enables the AVR internal pull-up resistor.
-        self._name = _arduino_pin_name(pin_id)
-        self._pin = _Pin(self._name, mode, pull)
+        if __CHIP__.arch == "rp2040":
+            self._pin = _Pin(pin_id, mode, pull)
+        else:
+            self._name = _arduino_pin_name(pin_id)
+            self._pin = _Pin(self._name, mode, pull)
 
     @inline
     def __init__(self, pin_id: const[str], mode: const[uint8] = 1):
