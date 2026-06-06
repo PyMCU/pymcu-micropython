@@ -261,15 +261,15 @@ class UART:
         return self._hw.read_line(buf, max_len)
 
     @inline
-    def readinto(self, buf: bytearray, nbytes: uint8) -> uint8:
-        # Reads exactly nbytes bytes from UART into buf (blocking per byte).
-        # Returns nbytes. Deviation: MicroPython readinto(buf) fills up to len(buf);
-        # PyMCU requires explicit nbytes since buf capacity may differ.
+    def readinto(self, buf: bytearray) -> uint8:
+        # Matches MicroPython: readinto(buf) fills len(buf) bytes (blocking).
+        # len(buf) folds to a compile-time constant from the array declaration.
         i: uint8 = 0
-        while i < nbytes:
+        n: uint8 = len(buf)
+        while i < n:
             buf[i] = self._hw.read()
             i = i + 1
-        return nbytes
+        return n
 
     @inline
     def any(self) -> uint8:
@@ -464,11 +464,9 @@ class I2C:
         self._i2c.stop()
 
     @inline
-    def writeto(self, addr: uint8, buf: bytearray, n: uint8):
-        # Multi-byte write: sends n bytes from buf to device at addr.
-        # Deviation: MicroPython writeto(addr, buf) infers len(buf);
-        # PyMCU requires explicit n (fixed arrays have no runtime len).
-        self._i2c.write_bytes(addr, buf, n)
+    def writeto(self, addr: uint8, buf: bytearray):
+        # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
+        self._i2c.write_bytes(addr, buf, len(buf))
 
     @inline
     def readfrom(self, addr: uint8) -> uint8:
@@ -479,11 +477,10 @@ class I2C:
         return val
 
     @inline
-    def readfrom_into(self, addr: uint8, buf: bytearray, n: uint8) -> uint8:
-        # Reads n bytes from device at addr into buf. Returns 1 on success, 0 on NACK.
-        # Deviation: MicroPython readfrom(addr, nbytes) returns a bytes object;
-        # PyMCU uses a caller-owned buffer to avoid GC overhead.
-        return self._i2c.read_n(addr, buf, n)
+    def readfrom_into(self, addr: uint8, buf: bytearray) -> uint8:
+        # Matches MicroPython: readfrom_into(addr, buf) fills len(buf) bytes.
+        # Returns 1 on success, 0 on NACK (MicroPython returns None; PyMCU reports status).
+        return self._i2c.read_n(addr, buf, len(buf))
 
 
 # ---------------------------------------------------------------------------
