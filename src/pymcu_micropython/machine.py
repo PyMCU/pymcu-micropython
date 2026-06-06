@@ -253,11 +253,17 @@ class UART:
         return self._hw.read()
 
     @inline
-    def readline(self, buf: bytearray, max_len: uint8) -> uint8:
-        # Reads bytes until '\n' (or max_len-1 bytes) into buf. Returns byte count
-        # stored (excludes newline; null-terminator written at buf[count]).
-        # Deviation: MicroPython readline() returns a bytes object with no args.
+    def readline(self, buf: bytearray) -> uint8:
+        # Matches closest MicroPython approximation: readline(buf) reads until '\n'
+        # (or len(buf)-1 bytes) into buf. len(buf) inferred at compile time.
+        # Returns byte count stored (excludes newline).
+        # Deviation: MicroPython readline() takes no args and returns bytes.
         # PyMCU uses a caller-provided buffer to avoid GC overhead.
+        return self._hw.read_line(buf, len(buf))
+
+    @inline
+    def readline(self, buf: bytearray, max_len: uint8) -> uint8:
+        # Two-arg form: explicit max_len cap (kept for backward compatibility).
         return self._hw.read_line(buf, max_len)
 
     @inline
