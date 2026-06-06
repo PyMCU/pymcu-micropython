@@ -7,6 +7,10 @@ name = "pymcu-micropython"
 version = "0.1.0a1"
 description = "MicroPython stdlib flavor for PyMCU"
 requires-python = ">=3.11"
+# The compat modules import pymcu.types / pymcu.hal at import time, so
+# pymcu-stdlib is a hard runtime dependency. The compiler driver and backend
+# are supplied by the project template (`pymcu new` -> pymcu-compiler[avr]).
+dependencies = ["pymcu-stdlib>=0.1.0a1"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pymcu_micropython"]
