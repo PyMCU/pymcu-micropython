@@ -470,10 +470,7 @@ class I2C:
 
     @inline
     def writeto(self, addr: uint8, data: uint8):
-        self._i2c.start()
-        self._i2c.write(addr << 1)
-        self._i2c.write(data)
-        self._i2c.stop()
+        self._i2c.writebyte(addr, data)
 
     @inline
     def writeto(self, addr: uint8, buf: bytearray):
