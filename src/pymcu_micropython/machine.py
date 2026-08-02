@@ -133,7 +133,7 @@ class Pin:
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8] = 1):
-        if __CHIP__.arch == "rp2040":
+        if __CHIP__.arch == "arm":
             # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
             self._pin = _Pin(pin_id, mode)
         else:
@@ -143,7 +143,7 @@ class Pin:
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
-        if __CHIP__.arch == "rp2040":
+        if __CHIP__.arch == "arm":
             self._pin = _Pin(pin_id, mode, pull)
         else:
             self._name = _arduino_pin_name(pin_id)
