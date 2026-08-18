@@ -180,8 +180,15 @@ def _install_hal_mocks() -> None:
     class _DeviceInfo:
         frequency = 16_000_000
 
+    # machine.py branches on __CHIP__.arch at import time, so the stub has to be an
+    # object with that attribute -- a bare "atmega328p" string raised AttributeError
+    # before the module finished loading.
+    class _ChipInfo:
+        name = "atmega328p"
+        arch = "avr"
+
     chips = ModuleType("pymcu.chips")
-    chips.__CHIP__ = "atmega328p"
+    chips.__CHIP__ = _ChipInfo()
     chips.__FREQ__ = 16_000_000
     chips.device_info = lambda: _DeviceInfo()
     sys.modules["pymcu.chips"] = chips

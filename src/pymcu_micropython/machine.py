@@ -18,6 +18,8 @@
 #   Pin number -> string name resolution happens at compile time via match/case.
 
 from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr, Callable
+from pymcu.chips import __CHIP__, __FREQ__
+from pymcu.exceptions import CompileError
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.uart import UART as _UART
 if __CHIP__.arch == "avr":
@@ -36,7 +38,6 @@ from pymcu.hal.irq import (
     enable_interrupts as _enable_interrupts,
     disable_interrupts as _disable_interrupts,
 )
-from pymcu.chips import __CHIP__, __FREQ__
 
 # ---------------------------------------------------------------------------
 # Module-level constants (MicroPython machine module compatibility)
@@ -111,7 +112,7 @@ def _arduino_pin_name(n: const[uint8]) -> str:
         case 19:
             return "PC5"
         case _:
-            return "PB5"
+            raise CompileError("machine.Pin: that number is not an Arduino Uno pin (0-19). Use a port name instead, e.g. Pin(\"PB5\", Pin.OUT).")
 
 
 # ---------------------------------------------------------------------------
@@ -136,18 +137,22 @@ class Pin:
         if __CHIP__.arch == "arm":
             # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
             self._pin = _Pin(pin_id, mode)
-        else:
+        elif __CHIP__.arch == "avr":
             # AVR: integer -> Arduino Uno port string (PD0, PB5, ...).
             self._name = _arduino_pin_name(pin_id)
             self._pin = _Pin(self._name, mode)
+        else:
+            raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
         if __CHIP__.arch == "arm":
             self._pin = _Pin(pin_id, mode, pull)
-        else:
+        elif __CHIP__.arch == "avr":
             self._name = _arduino_pin_name(pin_id)
             self._pin = _Pin(self._name, mode, pull)
+        else:
+            raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
     def __init__(self, pin_id: const[str], mode: const[uint8] = 1):
@@ -240,8 +245,11 @@ def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint16 = 1000) -> in
 
 class UART:
     @inline
-    def __init__(self, id: uint8 = 0, baudrate: uint16 = 9600):
-        # id accepted for API compatibility; ATmega328P has one USART (USART0).
+    def __init__(self, id: const[uint8] = 0, baudrate: uint16 = 9600):
+        # This chip has one USART. Silently configuring USART0 for a UART(1, ...)
+        # would leave the caller wiring the wrong pins and blaming the hardware.
+        if id != 0:
+            raise CompileError("machine.UART: this chip has a single USART; id must be 0.")
         self._hw = _UART(baudrate)
 
     @inline
@@ -435,9 +443,18 @@ class SPI:
 
 class I2C:
     @inline
-    def __init__(self, scl=None, sda=None, freq: uint32 = 100000):
-        # scl/sda accepted for API compatibility; hardware pins are fixed on
-        # ATmega328P (PC5=SCL, PC4=SDA) and configured inside _I2C.__init__.
+    def __init__(self, id: const[uint8] = 0, scl=None, sda=None, freq: const[uint32] = 100000):
+        # The TWI pins are fixed in silicon (PC5=SCL, PC4=SDA) and the bus runs at
+        # 100 kHz. Accepting scl/sda/freq and ignoring them is the worst outcome for
+        # someone porting code: it builds, and the bus is simply not what they asked for.
+        if id != 0:
+            raise CompileError("machine.I2C: this chip has a single TWI bus; id must be 0.")
+        if scl is not None:
+            raise CompileError("machine.I2C: the TWI pins are fixed on this chip (PC5 = SCL); drop the scl argument.")
+        if sda is not None:
+            raise CompileError("machine.I2C: the TWI pins are fixed on this chip (PC4 = SDA); drop the sda argument.")
+        if freq != 100000:
+            raise CompileError("machine.I2C: only 100000 Hz is supported on this chip; drop the freq argument.")
         self._i2c = _I2C()
 
     @inline
@@ -619,6 +636,8 @@ class Timer:
                 self._t.irq(callback, Timer.IRQ_COMPA)
             _enable_interrupts()
         elif period != 0:
+            if period > 4369:
+                raise CompileError("machine.Timer: period must be 1-4369 ms on this chip; above that 15 * period overflows the 16-bit compare register and the timer fires at a wrong, much shorter interval. Count several ticks in the callback for longer intervals.")
             if period <= 262:
                 self._t.reinit(64)
                 ocr: uint16 = uint16(250 * period - 1)
@@ -659,9 +678,10 @@ class Timer:
 
 class WDT:
     @inline
-    def __init__(self, id: uint8 = 0, timeout: uint16 = 5000):
+    def __init__(self, id: const[uint8] = 0, timeout: uint16 = 5000):
         # timeout is in milliseconds (MicroPython convention).
-        # id is accepted for API compatibility and ignored (single WDT on AVR).
+        if id != 0:
+            raise CompileError("machine.WDT: this chip has a single watchdog; id must be 0.")
         self._wdt = _Watchdog(timeout)
         self._wdt.enable()
 

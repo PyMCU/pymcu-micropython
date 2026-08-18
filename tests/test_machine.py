@@ -1,3 +1,6 @@
+import pytest
+from pymcu.exceptions import CompileError
+
 from pymcu_micropython.machine import (
     Pin, UART, ADC, PWM, SPI, I2C, _arduino_pin_name, time_pulse_us,
     Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
@@ -22,8 +25,10 @@ def test_arduino_pin_name_portb():
 
 
 def test_arduino_pin_name_default():
-    # Out-of-range falls back to PB5 (LED pin)
-    assert _arduino_pin_name(99) == "PB5"
+    # Out of range is refused, not quietly mapped to the LED: Pin(25) used
+    # to build and drive PB5.
+    with pytest.raises(CompileError):
+        _arduino_pin_name(99)
 
 
 # ── Pin constants ─────────────────────────────────────────────────────────  #
