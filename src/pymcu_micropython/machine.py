@@ -21,6 +21,7 @@ from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr, Callab
 from pymcu.chips import __CHIP__, __FREQ__
 from pymcu.exceptions import CompileError
 from pymcu.hal.gpio import Pin as _Pin
+from pymcu.hal.softi2c import SoftI2C as _SoftI2C
 from pymcu.hal.uart import UART as _UART
 if __CHIP__.arch == "avr":
     from pymcu.hal.adc import AnalogPin as _AnalogPin
@@ -551,6 +552,63 @@ class I2C:
         # Matches MicroPython: readfrom_into(addr, buf) fills len(buf) bytes.
         # Returns 1 on success, 0 on NACK (MicroPython returns None; PyMCU reports status).
         return self._i2c.read_n(addr, buf, len(buf))
+
+
+# ---------------------------------------------------------------------------
+# SoftI2C: bit-bang I2C on any two pins
+# ---------------------------------------------------------------------------
+
+class SoftI2C:
+    @inline
+    def __init__(self, scl: Pin, sda: Pin, freq: const[uint32] = 100000):
+        # MicroPython: SoftI2C(scl=Pin(9), sda=Pin(8), freq=100000).
+        # Both lines need external pull-ups. The half-period is derived from
+        # freq at compile time (100 kHz -> 5 us); freq >= 500 kHz drops the
+        # delays entirely (max speed, no timing guarantee).
+        half: uint8 = uint8(500000 // freq)
+        self._bus = _SoftI2C(scl._pin, sda._pin, half)
+        self._bus.init()
+
+    @inline
+    def scan(self) -> uint8:
+        # Returns number of responding devices (not a list).
+        # Deviation: MicroPython scan() returns a list of addresses.
+        # Use scan(buf, max_count) to also capture the addresses.
+        count: uint8 = 0
+        addr: uint8 = 1
+        while addr < 128:
+            if self._bus.ping(addr):
+                count = count + 1
+            addr = addr + 1
+        return count
+
+    @inline
+    def scan(self, buf: bytearray, max_count: uint8) -> uint8:
+        # Scans addresses 0x01-0x7F; stores each responding address in buf.
+        # Returns the number of devices found (up to max_count).
+        # Deviation: MicroPython scan() returns a list; PyMCU uses caller-owned buffer.
+        count: uint8 = 0
+        addr: uint8 = 1
+        while addr < 128:
+            if self._bus.ping(addr):
+                if count < max_count:
+                    buf[count] = addr
+                    count = count + 1
+            addr = addr + 1
+        return count
+
+    @inline
+    def writeto(self, addr: uint8, data: uint8):
+        self._bus.write_to(addr, data)
+
+    @inline
+    def writeto(self, addr: uint8, buf: bytearray):
+        # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
+        self._bus.write_bytes(addr, buf, len(buf))
+
+    @inline
+    def readfrom(self, addr: uint8) -> uint8:
+        return self._bus.read_from(addr)
 
 
 # ---------------------------------------------------------------------------
