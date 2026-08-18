@@ -317,12 +317,38 @@ class UART:
 # ADC
 # ---------------------------------------------------------------------------
 
+@inline
+def _adc_channel_port(channel: const[uint8]) -> str:
+    # Maps an ADC channel number to the PyMCU port string (A0-A5 on Uno).
+    match channel:
+        case 0:
+            return "PC0"
+        case 1:
+            return "PC1"
+        case 2:
+            return "PC2"
+        case 3:
+            return "PC3"
+        case 4:
+            return "PC4"
+        case 5:
+            return "PC5"
+
+
 class ADC:
     @inline
     def __init__(self, pin: Pin):
         # pin: machine.Pin instance. Use Pin(14)-Pin(19) for A0-A5 on Arduino Uno.
         # Extracts the CT port string (e.g. "PC0") from pin._name for the HAL.
         self._adc = _AnalogPin(pin._name)
+
+    @inline
+    def __init__(self, channel: const[uint8]):
+        # ESP-style channel number (MicroPython quickref: machine.ADC(0)).
+        # Channels 0-5 map to A0-A5 (PC0-PC5) on the Arduino Uno.
+        if channel > 5:
+            raise CompileError("machine.ADC: this chip has ADC channels 0-5 (A0-A5); use ADC(0)..ADC(5) or ADC(Pin(14))..ADC(Pin(19)).")
+        self._adc = _AnalogPin(_adc_channel_port(channel))
 
     @inline
     def read(self) -> uint16:
