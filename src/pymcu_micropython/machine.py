@@ -388,19 +388,37 @@ class PWM:
         # pin: machine.Pin instance on a PWM-capable GPIO (D3/D5/D6/D9/D10/D11 on Uno).
         # Extracts the CT port string from pin._name for the HAL.
         duty8: uint8 = duty_u16 >> 8
+        self._freq = freq
+        self._duty = duty_u16
         self._pwm = _PWM(pin._name, duty8, freq)
 
     @inline
+    def freq(self) -> uint16:
+        # Getter (MicroPython: pwm.freq() with no args reads the frequency).
+        # Returns the last requested value; the timer runs at the nearest
+        # achievable prescaler bucket, which may differ.
+        return self._freq
+
+    @inline
     def freq(self, value: uint16):
+        self._freq = value
         self._pwm.set_freq(value)
 
     @inline
+    def duty_u16(self) -> uint16:
+        # Getter (MicroPython: pwm.duty_u16() with no args reads the duty).
+        return self._duty
+
+    @inline
     def duty_u16(self, value: uint16):
+        self._duty = value
         duty8: uint8 = value >> 8
         self._pwm.set_duty(duty8)
 
     @inline
     def duty(self, value: uint8):
+        wide: uint16 = value
+        self._duty = wide * 256
         self._pwm.set_duty(value)
 
     @inline
