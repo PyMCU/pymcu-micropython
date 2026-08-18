@@ -268,6 +268,13 @@ class UART:
         return self._hw.read()
 
     @inline
+    def readline(self) -> uint8:
+        # MicroPython's no-arg readline() returns a fresh bytes object, which
+        # needs a heap. Error with the working alternative instead of failing
+        # with a confusing arity mismatch.
+        raise CompileError("machine.UART.readline: the no-arg form returns a heap-allocated bytes object, which this target does not have. Declare a buffer and use readline(buf): buf: bytearray = bytearray(32); n = uart.readline(buf).")
+
+    @inline
     def readline(self, buf: bytearray) -> uint8:
         # Matches closest MicroPython approximation: readline(buf) reads until '\n'
         # (or len(buf)-1 bytes) into buf. len(buf) inferred at compile time.
@@ -619,6 +626,14 @@ class SoftI2C:
 def freq() -> uint32:
     # Returns the CPU clock frequency in Hz (compile-time constant from pyproject.toml).
     return __FREQ__
+
+
+@inline
+def unique_id() -> uint8:
+    # ATmega328P has no factory-programmed unique ID, so there is nothing
+    # honest to return. Erroring beats handing back a fake constant that a
+    # ported sketch would use as a device address.
+    raise CompileError("machine.unique_id: this chip has no unique hardware ID (the ATmega328P signature row is the same for every part). Store an ID in EEPROM via the avr module instead.")
 
 
 # ---------------------------------------------------------------------------
