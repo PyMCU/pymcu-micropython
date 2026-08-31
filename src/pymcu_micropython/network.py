@@ -1,5 +1,5 @@
-# MicroPython-compat network.WLAN over the CYW43439 (Pico 2 W). Universal source; the
-# per-arch radio lives in the HAL (pymcu.hal.wifi -> hal/rp2350/cyw43).
+# MicroPython-compat network.WLAN over the CYW43439 (Pico W and Pico 2 W). Universal source;
+# the radio lives in the HAL (pymcu.hal.wifi -> hal/rp/cyw43), one driver for both.
 from pymcu.hal.wifi import CYW43
 from pymcu.types import uint8, inline, const
 from pymcu.exceptions import CompileError
