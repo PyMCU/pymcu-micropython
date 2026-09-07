@@ -10,8 +10,10 @@
 #   uart = UART(0, 9600)          # USART0
 #   adc = ADC(Pin("A0"))          # ADC channel 0
 #
-# Integer pin numbers map to Arduino Uno digital pin names at compile time.
-# String pin names ("PB5", "PC0", etc.) are also accepted directly.
+# Integer pin numbers are the target board's own numbering, resolved at compile
+# time by the HAL for that chip -- 13 is PB5 on an Uno and PB7 on a Mega. Chips
+# with no board numbering (the bare ATtinys, the ATmega32U4) refuse a number and
+# ask for a port name. String pin names ("PB5", "PC0", ...) are always accepted.
 #
 # ZCA contract:
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
@@ -24,6 +26,13 @@ from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.softi2c import SoftI2C as _SoftI2C
 from pymcu.hal.uart import UART as _UART
 if __CHIP__.arch == "avr":
+    # Imported from the AVR package rather than the pymcu.hal.gpio facade on
+    # purpose. Re-exporting the name through that facade needs a wrapper def,
+    # and wrapping breaks the compile-time fold: measured on an Uno, the extra
+    # @inline layer turned Pin(13) into SBI 0x0A,7 (PD7) instead of SBI 0x04,5
+    # (PB5). A wrong pin, silently. Reaching one level in keeps the fold exact,
+    # and this import already sits inside the AVR-only branch.
+    from pymcu.hal.avr.gpio import board_pin_name as _board_pin_name
     from pymcu.hal.adc import AnalogPin as _AnalogPin
     from pymcu.hal.pwm import PWM as _PWM
     from pymcu.hal.spi import SPI as _SPI
@@ -63,58 +72,20 @@ WLAN_WAKE = 2
 
 
 # ---------------------------------------------------------------------------
-# Compile-time Arduino Uno pin number -> port string helper
+# Board pin number -> port string
 # ---------------------------------------------------------------------------
-
-@inline
-def _arduino_pin_name(n: const[uint8]) -> str:
-    # Maps Arduino Uno integer pin number to PyMCU port string.
-    # D0-D7 -> PORTD; D8-D13 -> PORTB.
-    # String constants are resolved at compile time (match/case DCE).
-    match n:
-        case 0:
-            return "PD0"
-        case 1:
-            return "PD1"
-        case 2:
-            return "PD2"
-        case 3:
-            return "PD3"
-        case 4:
-            return "PD4"
-        case 5:
-            return "PD5"
-        case 6:
-            return "PD6"
-        case 7:
-            return "PD7"
-        case 8:
-            return "PB0"
-        case 9:
-            return "PB1"
-        case 10:
-            return "PB2"
-        case 11:
-            return "PB3"
-        case 12:
-            return "PB4"
-        case 13:
-            return "PB5"
-        case 14:
-            return "PC0"
-        case 15:
-            return "PC1"
-        case 16:
-            return "PC2"
-        case 17:
-            return "PC3"
-        case 18:
-            return "PC4"
-        case 19:
-            return "PC5"
-        case _:
-            raise CompileError("machine.Pin: that number is not an Arduino Uno pin (0-19). Use a port name instead, e.g. Pin(\"PB5\", Pin.OUT).")
-
+#
+# The numbering is NOT kept here. It lives in the AVR GPIO HAL, one table per
+# chip, next to the select_port/select_bit arms that already had to know it.
+# This module used to carry its own Arduino Uno table and apply it to every AVR,
+# which silently produced PB5 on parts where 13 is not PB5 at all: D13 is PB7 on
+# a Mega and PC7 on a Leonardo, and on an ATtiny85 PB5 is the RESET pin. The
+# per-chip tables the HAL grew in "Pin(13) works on AVR" were unreachable
+# because this function answered first.
+#
+# `_board_pin_name` is @inline and matches on a compile-time constant, so the
+# call folds to a string literal before _Pin ever sees it: Pin(13, Pin.OUT) and
+# Pin("PB5", Pin.OUT) still emit the same bytes on an Uno.
 
 # ---------------------------------------------------------------------------
 # Pin
@@ -139,8 +110,8 @@ class Pin:
             # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
             self._pin = _Pin(pin_id, mode)
         elif __CHIP__.arch == "avr":
-            # AVR: integer -> Arduino Uno port string (PD0, PB5, ...).
-            self._name = _arduino_pin_name(pin_id)
+            # AVR: board number -> port string, per chip (see the HAL).
+            self._name = _board_pin_name(pin_id)
             self._pin = _Pin(self._name, mode)
         else:
             raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
@@ -150,7 +121,7 @@ class Pin:
         if __CHIP__.arch == "arm":
             self._pin = _Pin(pin_id, mode, pull)
         elif __CHIP__.arch == "avr":
-            self._name = _arduino_pin_name(pin_id)
+            self._name = _board_pin_name(pin_id)
             self._pin = _Pin(self._name, mode, pull)
         else:
             raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
