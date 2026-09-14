@@ -406,8 +406,7 @@ class PWM:
         self._duty = duty_u16
         if duty_ns != 0:
             self._duty = _duty_ns_to_u16(duty_ns, freq)
-        duty8: uint8 = self._duty >> 8
-        self._pwm = _PWM(pin._name, duty8, freq, invert)
+        self._pwm = _PWM(pin._name, freq=freq, invert=invert, duty_u16=self._duty)
 
     @inline
     def freq(self) -> uint16:
@@ -429,8 +428,7 @@ class PWM:
     @inline
     def duty_u16(self, value: uint16):
         self._duty = value
-        duty8: uint8 = value >> 8
-        self._pwm.set_duty(duty8)
+        self._pwm.set_duty_u16(value)
 
     @inline
     def duty(self) -> uint16:
@@ -443,8 +441,7 @@ class PWM:
         # It used to be read as a uint8, so duty(512) arrived as 0 and switched the output off.
         wide: uint16 = value << 6
         self._duty = wide
-        duty8: uint8 = wide >> 8
-        self._pwm.set_duty(duty8)
+        self._pwm.set_duty_u16(wide)
 
     @inline
     def duty_ns(self) -> uint32:
@@ -455,8 +452,7 @@ class PWM:
     def duty_ns(self, value: uint32):
         duty16: uint16 = _duty_ns_to_u16(value, self._freq)
         self._duty = duty16
-        duty8: uint8 = duty16 >> 8
-        self._pwm.set_duty(duty8)
+        self._pwm.set_duty_u16(duty16)
 
     @inline
     def init(self, freq: uint16 = 0, duty_u16: uint16 = 0, duty_ns: uint32 = 0):
