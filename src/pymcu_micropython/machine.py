@@ -330,6 +330,12 @@ class ADC:
         self._adc = _AnalogPin(_adc_channel_port(channel))
 
     @inline
+    def __init__(self, pin_name: const[str]):
+        # The port-string form, which is what the board modules spell A0..A5 as
+        # (arduino_uno.A0 is "PC0"): ADC(arduino_uno.A0).
+        self._adc = _AnalogPin(pin_name)
+
+    @inline
     def read(self) -> uint16:
         # MicroPython-style 10-bit read (0-1023)
         self._adc.start()
