@@ -361,15 +361,47 @@ class ADC:
 # PWM
 # ---------------------------------------------------------------------------
 
+# duty_ns <-> duty_u16 at a frequency, in 32-bit integer arithmetic: the high time is
+# ns * freq / 1e9 of a period, and a period is 65536 duty_u16 steps. With q = (ns / 10) *
+# freq, which stays at or below 1e8 for any high time up to one period, the duty is
+# q * 65536 / 1e8 = q * 40 / 61035.16: q * 40 fits 32 bits and the 1 / 61035 is exact to
+# 3 parts per million, so 500 us at 1 kHz lands on 32768 as in MicroPython. A high time
+# past the period saturates at 100 %.
+@inline
+def _duty_ns_to_u16(ns: uint32, freq: uint16) -> uint16:
+    q: uint32 = (ns // 10) * freq
+    if q > 100000000:
+        return 65535
+    scaled: uint32 = q * 40 // 61035
+    if scaled > 65535:
+        return 65535
+    return scaled
+
+
+@inline
+def _duty_u16_to_ns(duty: uint16, freq: uint16) -> uint32:
+    if freq == 0:
+        return 0
+    wide: uint32 = duty
+    return wide * 15259 // freq
+
+
 class PWM:
     @inline
-    def __init__(self, pin: Pin, freq: uint16 = 1000, duty_u16: uint16 = 0):
+    def __init__(self, pin: Pin, freq: uint16 = 1000, duty_u16: uint16 = 0,
+                 duty_ns: uint32 = 0, invert: const[uint8] = 0):
         # pin: machine.Pin instance on a PWM-capable GPIO (D3/D5/D6/D9/D10/D11 on Uno).
         # Extracts the CT port string from pin._name for the HAL.
-        duty8: uint8 = duty_u16 >> 8
+        # duty_ns, when given, wins over duty_u16 (MicroPython: the last one set applies;
+        # a constructor takes one or the other). invert selects the inverting output.
+        # The field is laid out from this first store: a uint16 parameter gives it sixteen
+        # bits (an annotated local did not, and duty_u16(16384) then read back as 0).
         self._freq = freq
         self._duty = duty_u16
-        self._pwm = _PWM(pin._name, duty8, freq)
+        if duty_ns != 0:
+            self._duty = _duty_ns_to_u16(duty_ns, freq)
+        duty8: uint8 = self._duty >> 8
+        self._pwm = _PWM(pin._name, duty8, freq, invert)
 
     @inline
     def freq(self) -> uint16:
@@ -395,13 +427,42 @@ class PWM:
         self._pwm.set_duty(duty8)
 
     @inline
-    def duty(self, value: uint8):
-        wide: uint16 = value
-        self._duty = wide * 256
-        self._pwm.set_duty(value)
+    def duty(self) -> uint16:
+        # Getter, on MicroPython's legacy 0..1023 scale.
+        return self._duty >> 6
 
     @inline
-    def init(self):
+    def duty(self, value: uint16):
+        # MicroPython's legacy duty is 0..1023 (ESP8266/ESP32 spelling): 512 is 50 %.
+        # It used to be read as a uint8, so duty(512) arrived as 0 and switched the output off.
+        wide: uint16 = value << 6
+        self._duty = wide
+        duty8: uint8 = wide >> 8
+        self._pwm.set_duty(duty8)
+
+    @inline
+    def duty_ns(self) -> uint32:
+        # Getter: the high time in nanoseconds at the current frequency.
+        return _duty_u16_to_ns(self._duty, self._freq)
+
+    @inline
+    def duty_ns(self, value: uint32):
+        duty16: uint16 = _duty_ns_to_u16(value, self._freq)
+        self._duty = duty16
+        duty8: uint8 = duty16 >> 8
+        self._pwm.set_duty(duty8)
+
+    @inline
+    def init(self, freq: uint16 = 0, duty_u16: uint16 = 0, duty_ns: uint32 = 0):
+        # MicroPython: init(*, freq, duty_u16, duty_ns) reprograms what is given and
+        # (re)starts the output. A 0 here means "not given": duty_u16=0 alone does not
+        # switch the output off, use duty_u16(0) for that.
+        if freq != 0:
+            self.freq(freq)
+        if duty_u16 != 0:
+            self.duty_u16(duty_u16)
+        if duty_ns != 0:
+            self.duty_ns(duty_ns)
         self._pwm.start()
 
     @inline
