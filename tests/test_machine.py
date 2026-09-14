@@ -2,7 +2,7 @@ import pytest
 from pymcu.exceptions import CompileError
 
 from pymcu_micropython.machine import (
-    Pin, UART, ADC, PWM, SPI, I2C, _arduino_pin_name, time_pulse_us,
+    Pin, UART, ADC, PWM, SPI, I2C, time_pulse_us,
     Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
     IDLE, SLEEP, DEEPSLEEP,
     PWRON_RESET, HARD_RESET, WDT_RESET, DEEPSLEEP_RESET, SOFT_RESET,
@@ -11,24 +11,26 @@ from pymcu_micropython.machine import (
 )
 
 
-# ── _arduino_pin_name ─────────────────────────────────────────────────────  #
+# ── board pin numbers ─────────────────────────────────────────────────────  #
+# Integer pins are resolved by the HAL's board_pin_name (stubbed in conftest with the
+# Uno's table); the layer keeps no table of its own since 33374b0.
 
-def test_arduino_pin_name_portd():
-    assert _arduino_pin_name(0) == "PD0"
-    assert _arduino_pin_name(1) == "PD1"
-    assert _arduino_pin_name(7) == "PD7"
-
-
-def test_arduino_pin_name_portb():
-    assert _arduino_pin_name(8)  == "PB0"
-    assert _arduino_pin_name(13) == "PB5"
+def test_pin_number_portd():
+    assert Pin(0)._name == "PD0"
+    assert Pin(1)._name == "PD1"
+    assert Pin(7)._name == "PD7"
 
 
-def test_arduino_pin_name_default():
+def test_pin_number_portb():
+    assert Pin(8)._name == "PB0"
+    assert Pin(13)._name == "PB5"
+
+
+def test_pin_number_out_of_range_is_refused():
     # Out of range is refused, not quietly mapped to the LED: Pin(25) used
     # to build and drive PB5.
     with pytest.raises(CompileError):
-        _arduino_pin_name(99)
+        Pin(99)
 
 
 # ── Pin constants ─────────────────────────────────────────────────────────  #
@@ -190,12 +192,12 @@ def test_uart_println():
 # ── ADC ───────────────────────────────────────────────────────────────────  #
 
 def test_adc_instantiation():
-    adc = ADC("A0")
+    adc = ADC(0)
     assert adc is not None
 
 
 def test_adc_has_read_methods():
-    adc = ADC("A0")
+    adc = ADC(0)
     assert callable(adc.read)
     assert callable(adc.read_u16)
 
@@ -218,9 +220,41 @@ def test_pwm_duty_u16():
     pwm.duty_u16(32768)
 
 
-def test_pwm_duty():
+def test_pwm_duty_is_the_legacy_1023_scale():
     pwm = PWM(Pin(6, Pin.OUT))
-    pwm.duty(128)
+    pwm.duty(512)
+    assert pwm.duty() == 512
+    assert pwm.duty_u16() == 32768
+
+
+def test_pwm_duty_ns_roundtrip():
+    pwm = PWM(Pin(6, Pin.OUT), freq=1000)
+    pwm.duty_ns(500_000)
+    assert pwm.duty_u16() == 32768
+    assert 499_000 <= pwm.duty_ns() <= 501_000
+
+
+def test_pwm_duty_ns_keyword_at_construction():
+    pwm = PWM(Pin(6, Pin.OUT), freq=2000, duty_ns=125_000)
+    assert pwm.duty_u16() == 16384
+
+
+def test_pwm_duty_ns_past_the_period_saturates():
+    pwm = PWM(Pin(6, Pin.OUT), freq=1000)
+    pwm.duty_ns(5_000_000)
+    assert pwm.duty_u16() == 65535
+
+
+def test_pwm_init_keywords():
+    pwm = PWM(Pin(6, Pin.OUT))
+    pwm.init(freq=5000, duty_u16=16384)
+    assert pwm.freq() == 5000
+    assert pwm.duty_u16() == 16384
+
+
+def test_pwm_invert_keyword():
+    pwm = PWM(Pin(6, Pin.OUT), freq=1000, duty_u16=32768, invert=1)
+    assert pwm.duty_u16() == 32768
 
 
 # ── SPI ───────────────────────────────────────────────────────────────────  #

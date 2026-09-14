@@ -15,14 +15,14 @@ from pymcu_micropython.board_chips import BOARD_CHIPS
 # ── Machine imports ───────────────────────────────────────────────────────── #
 
 from pymcu_micropython.machine import (
-    Pin, UART, ADC, PWM, SPI, I2C, _arduino_pin_name,
+    Pin, UART, ADC, PWM, SPI, I2C,
 )
 
 
 # ── board → machine.Pin (integer boards) ─────────────────────────────────── #
 
 class TestBoardToPinInteger:
-    """Arduino Uno/Nano expose integer D0-D13 that Pin() resolves via _arduino_pin_name."""
+    """Arduino Uno/Nano expose integer D0-D13 that Pin() resolves via the HAL's board_pin_name."""
 
     def test_uno_led_output(self):
         led = Pin(arduino_uno.LED, Pin.OUT)
@@ -68,7 +68,7 @@ class TestBoardToPinInteger:
 # ── board → machine.Pin (port-string boards) ─────────────────────────────── #
 
 class TestBoardToPinPortString:
-    """Mega, Micro, ATtiny boards use port strings because _arduino_pin_name is Uno-only."""
+    """Mega, Micro, ATtiny boards use port strings because the HAL resolves a number per board."""
 
     def test_mega_led_port_string(self):
         assert arduino_mega.LED == "PB7"
@@ -154,27 +154,27 @@ class TestBoardToADC:
 
 class TestBoardToPWM:
     def test_uno_d6_pwm(self):
-        pwm = PWM(arduino_uno.D6, freq=490, duty_u16=0)
+        pwm = PWM(Pin(arduino_uno.D6), freq=490, duty_u16=0)
         assert pwm is not None
 
     def test_uno_d6_set_duty(self):
-        pwm = PWM(arduino_uno.D6)
+        pwm = PWM(Pin(arduino_uno.D6))
         pwm.duty_u16(32768)
 
     def test_nano_d9_pwm(self):
-        pwm = PWM(arduino_nano.D9)
+        pwm = PWM(Pin(arduino_nano.D9))
         pwm.duty(128)
 
     def test_mega_d6_pwm(self):
-        pwm = PWM(arduino_mega.D6)
+        pwm = PWM(Pin(arduino_mega.D6))
         assert pwm is not None
 
     def test_digispark_p1_pwm(self):
-        pwm = PWM(digispark.P1)
+        pwm = PWM(Pin(digispark.P1))
         assert pwm is not None
 
     def test_deinit(self):
-        pwm = PWM(arduino_uno.D6)
+        pwm = PWM(Pin(arduino_uno.D6))
         pwm.deinit()
 
 
@@ -279,25 +279,25 @@ class TestBoardChips:
             assert isinstance(chip, str), f"{board_name!r} chip must be a string"
 
 
-# ── _arduino_pin_name integration with board constants ────────────────────── #
+# ── board pin numbers with board constants ────────────────────── #
 
 class TestArduinoPinNameWithBoardConstants:
     def test_d0_maps_correctly(self):
-        assert _arduino_pin_name(arduino_uno.D0) == "PD0"
+        assert Pin(arduino_uno.D0)._name == "PD0"
 
     def test_d7_maps_correctly(self):
-        assert _arduino_pin_name(arduino_uno.D7) == "PD7"
+        assert Pin(arduino_uno.D7)._name == "PD7"
 
     def test_d8_maps_to_portb(self):
-        assert _arduino_pin_name(arduino_uno.D8) == "PB0"
+        assert Pin(arduino_uno.D8)._name == "PB0"
 
     def test_d13_led_maps_correctly(self):
-        assert _arduino_pin_name(arduino_uno.LED) == "PB5"
+        assert Pin(arduino_uno.LED)._name == "PB5"
 
     def test_nano_identical_to_uno(self):
         for d in range(14):
-            assert _arduino_pin_name(arduino_nano.__dict__.get(f"D{d}", d)) == \
-                   _arduino_pin_name(arduino_uno.__dict__.get(f"D{d}", d))
+            assert Pin(arduino_nano.__dict__.get(f"D{d}", d))._name == \
+                   Pin(arduino_uno.__dict__.get(f"D{d}", d))._name
 
 
 # ── typical workflows ─────────────────────────────────────────────────────── #
@@ -324,7 +324,7 @@ class TestTypicalWorkflows:
         """Instantiate ADC and PWM; skip hardware read (ptr not available in CPython)."""
         import pytest
         adc = ADC(arduino_uno.A0)
-        pwm = PWM(arduino_uno.D6)
+        pwm = PWM(Pin(arduino_uno.D6))
         # Verify ADC.read() raises the expected CPython error
         with pytest.raises(RuntimeError):
             _ = adc.read()

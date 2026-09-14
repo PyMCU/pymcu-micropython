@@ -6,6 +6,7 @@ This file is loaded by pytest before any test module, so the mocks are in place
 when the package-under-test runs its top-level imports.
 """
 import sys
+from pymcu.exceptions import CompileError
 from types import ModuleType
 from unittest.mock import MagicMock
 
@@ -23,9 +24,10 @@ def _install_hal_mocks() -> None:
         OPEN_DRAIN = 2
         PULL_UP = 1
 
-        def __init__(self, name, mode=1):
+        def __init__(self, name, mode=1, pull=0):
             self._name = name
             self._mode = mode
+            self._pull = pull
             self._v = 0
 
         def high(self):   self._v = 1
@@ -67,21 +69,26 @@ def _install_hal_mocks() -> None:
         def read(self):          return 0
 
     class _MockPWM:
-        def __init__(self, pin, duty=0, freq=1000): pass
+        def __init__(self, pin, duty=0, freq=1000, invert=0): pass
         def start(self):          pass
         def stop(self):           pass
         def set_duty(self, d):    pass
+        def set_freq(self, f):    pass
 
     class _MockSPI:
         def __init__(self, cs=""): pass
         def transfer(self, data): return 0
         def write(self, data):    pass
+        def write_bytes(self, buf, n):                 pass
+        def write_readinto_n(self, wbuf, rbuf, n):     pass
         def select(self):         pass
         def deselect(self):       pass
 
     class _MockI2C:
         def __init__(self):          pass
         def ping(self, addr):        return 0
+        def write_bytes(self, addr, buf, n): return 0
+        def writebyte(self, addr, b):        return 0
         def write_to(self, addr, d): return 0
         def read_from(self, addr):   return 0
         def read_nack(self):         return 0
@@ -164,6 +171,18 @@ def _install_hal_mocks() -> None:
          sleep_power_save=lambda: None,
          sleep_power_down=lambda: None)
     _reg("softspi",  SoftSPI=_MockSoftSPI)
+    # The AVR package machine.py reaches into for the board pin table, and the
+    # WiFi HAL network.py wraps; neither has a hardware side under CPython.
+    _reg("avr")
+    def _board_pin_name(n):
+        if n < 8:
+            return f"PD{n}"
+        if n < 14:
+            return f"PB{n - 8}"
+        raise CompileError(f"pin {n} is not a pin of this board")
+
+    _reg("avr.gpio", board_pin_name=_board_pin_name)
+    _reg("wifi",     WiFi=type("WiFi", (), {}))
     _reg("softi2c",  SoftI2C=_MockSoftI2C)
     _reg("eeprom",   EEPROM=_MockEEPROM)
 
@@ -195,3 +214,8 @@ def _install_hal_mocks() -> None:
 
 
 _install_hal_mocks()
+
+# The compiler binds _set_irq_zca_arg as an intrinsic (it hands an instance to an ISR); under
+# CPython it is a builtin that does nothing.
+import builtins as _builtins
+_builtins._set_irq_zca_arg = lambda handler, inst: None
