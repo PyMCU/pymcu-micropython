@@ -336,6 +336,22 @@ class ADC:
         self._adc = _AnalogPin(pin_name)
 
     @inline
+    def __init__(self, other: ADC):
+        # ADC(an_adc) is the identity. A driver that takes "an ADC or something an ADC can be
+        # made from" calls ADC() on whatever it was given, and LM35(ADC(Pin("PC0"))) is that
+        # shape: LM35.__init__ calls ADC(pin) again on a value that is already one.
+        #
+        # Without this overload the call selected __init__(self, pin: Pin) and read pin._name
+        # on an ADC, which has no _name. That read used to be accepted inside a constructor and
+        # lowered against a slot nothing writes, so the channel table became a run-time
+        # comparison of a pin name against a byte of BSS and the refusal in its default arm
+        # became a warning: a pin with no channel behind it read channel 0 (PyMCU#318).
+        #
+        # Taking the field through is what keeps the pin name a compile-time constant, so the
+        # table folds to one LDI here exactly as it does without the wrapper.
+        self._adc = other._adc
+
+    @inline
     def read(self) -> uint16:
         # MicroPython-style 10-bit read (0-1023)
         self._adc.start()
