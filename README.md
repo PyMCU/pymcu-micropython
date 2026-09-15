@@ -71,6 +71,14 @@ The library currently ships pin-mapping support for:
 
 Additional boards can be added by contributing a file under `src/pymcu_micropython/boards/`.
 
+## API parity with MicroPython
+
+`tests/parity/` compares this layer's real API surface against `micropython-rp2-stubs` (the
+RP2/Pico stub package) symbol by symbol. Where this layer deliberately differs, the reason is
+either a hardware/architecture limit of this class of AVR chip -- documented in
+[`docs/limitations.md`](docs/limitations.md) -- or a real, tracked gap referenced from
+[`docs/parity.md`](docs/parity.md), which the suite regenerates.
+
 ## License
 
 See [LICENSE](LICENSE) for details.
