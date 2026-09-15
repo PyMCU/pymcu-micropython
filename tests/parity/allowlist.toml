@@ -645,10 +645,6 @@ symbol = "machine.reset_cause"
 status = "tracked:#17"
 reason = "Not implemented though the MCUSR register that backs it exists in hardware; tracked by PyMCU/pymcu-micropython#17."
 
-[[deviation]]
-symbol = "machine.soft_reset"
-status = "tracked:#17"
-reason = "Not implemented though the MCUSR register that backs it exists in hardware; tracked by PyMCU/pymcu-micropython#17."
 
 [[deviation]]
 symbol = "machine.time_pulse_us"

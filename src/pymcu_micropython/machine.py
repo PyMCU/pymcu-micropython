@@ -717,6 +717,20 @@ def reset():
 
 
 @inline
+def soft_reset():
+    # A watchdog-triggered restart, unlike reset()'s direct jump to address 0:
+    # the WDT firing is a real hardware reset, so every peripheral (UART baud
+    # rate, PWM duty, ADC prescaler, ...) comes back to its power-on default
+    # instead of resuming main() with whatever state reset() left it in.
+    # Arm the shortest timeout (~16 ms) and wait for it -- there is no
+    # "trigger now" bit on this chip's watchdog.
+    wdt = _Watchdog(16)
+    wdt.enable()
+    while True:
+        pass
+
+
+@inline
 def idle():
     # Enter idle sleep (CPU halted, peripherals running). Wakes on any interrupt.
     _sleep_idle()
