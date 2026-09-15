@@ -322,6 +322,17 @@ class UART:
         return self._hw.available()
 
     @inline
+    def irq(self, handler: Callable = 0, trigger: uint8 = 0, hard: uint8 = 0):
+        # MicroPython: irq(handler, trigger, hard, /) -- self and every argument are
+        # positional-only in the real stub, blocked separately by #12. trigger/hard are
+        # accepted and ignored: this chip's USART has only one real interrupt source
+        # (RX complete, the same one HAL's own UART.irq() already wires up), none of
+        # MicroPython's other IRQ_* triggers exist here (docs/limitations.md), and
+        # every ISR this HAL installs is already a true hardware interrupt.
+        _set_irq_zca_arg(handler, self)
+        self._hw.irq(handler)
+
+    @inline
     def write_str(self, s: const[str]):
         # PyMCU extension -- prefer write(str) for portability.
         self._hw.write_str(s)

@@ -208,6 +208,20 @@ def test_uart_println():
     uart.println("test")
 
 
+def test_uart_irq():
+    uart = UART(0, 9600)
+    uart.irq(lambda u: None)
+
+
+def test_uart_irq_trigger_and_hard_are_accepted():
+    # trigger=/hard= are accepted for signature shape (MicroPython declares
+    # them positional-only, PyMCU/pymcu-micropython#12) and ignored: this
+    # chip's USART has one real interrupt source and every ISR here is
+    # already a true hardware interrupt.
+    uart = UART(0, 9600)
+    uart.irq(lambda u: None, 1, 1)
+
+
 # ── ADC ───────────────────────────────────────────────────────────────────  #
 
 def test_adc_instantiation():

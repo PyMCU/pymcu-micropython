@@ -517,8 +517,8 @@ reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-
 
 [[deviation]]
 symbol = "machine.UART.irq"
-status = "tracked:#16"
-reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
+status = "tracked:#12"
+reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
 symbol = "machine.UART.readinto"

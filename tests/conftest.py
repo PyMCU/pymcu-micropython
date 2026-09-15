@@ -62,6 +62,9 @@ def _install_hal_mocks() -> None:
         def write_str(self, s):  pass
         def println(self, s):    pass
         def print_byte(self, v): pass
+        def irq(self, handler):  pass
+        def available(self):     return 0
+        def read_line(self, buf, max_len): return 0
 
     class _MockAnalogPin:
         def __init__(self, pin): pass
