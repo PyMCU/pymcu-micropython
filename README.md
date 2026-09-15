@@ -82,6 +82,31 @@ either a hardware/architecture limit of this class of AVR chip -- documented in
 The suite runs on every push and PR via `.github/workflows/ci.yml` (pure CPython, no compiler
 needed).
 
+## Running the tests
+
+```sh
+uv run --with pytest python -m pytest tests/parity -q
+```
+
+runs the parity suite alone (what CI runs). The full suite, `tests/` (the layer's own unit and
+integration tests), needs `pymcu.types.inline`'s CPython overload dispatch -- the mechanism
+that lets `machine.Pin`'s four `__init__` overloads (and every other overloaded method this
+layer defines) resolve correctly when imported as ordinary Python, the same way `pymcuc`
+resolves them at compile time. That dispatch has been in `pymcu-stdlib` since PyMCU's
+`7dcc1c2c`, but the version on PyPI has not been re-released with it yet, so the plain
+`pymcu-stdlib>=...` dependency this project installs predates the fix and every test that
+constructs more than one overload of the same method fails with a wrong-arity `TypeError`.
+Point `uv` at a `PyMCU` checkout's stdlib instead, until a `pymcu-stdlib` release includes it
+(sibling checkout, `~/Repos/PyMCU` next to this repo):
+
+```sh
+uv run --with pytest --with-editable ~/Repos/PyMCU/lib python -m pytest tests -q
+```
+
+`uv run pytest` alone (no `--with pytest`) is never correct here either: it falls back to
+whatever Python `uv tool` itself runs on, which can have an unrelated, older `pymcu` on its
+own path.
+
 ## License
 
 See [LICENSE](LICENSE) for details.
