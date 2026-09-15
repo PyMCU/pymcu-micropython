@@ -80,7 +80,9 @@ either a hardware/architecture limit of this class of AVR chip -- documented in
 [`docs/parity.md`](docs/parity.md), which the suite regenerates.
 
 The suite runs on every push and PR via `.github/workflows/ci.yml` (pure CPython, no compiler
-needed).
+needed). CI also checks out `PyMCU/PyMCU` and points at its `lib/` the same way "Running the
+tests" below does, so it exercises the same `pymcu-stdlib` this repo's own tests need --
+remove that checkout once a `pymcu-stdlib` release includes the fix (PyMCU/PyMCU#437).
 
 ## Running the tests
 

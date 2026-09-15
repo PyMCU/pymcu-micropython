@@ -18,6 +18,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Several parity symbols (Pin.value/mode, PWM.duty_ns/duty_u16/freq, I2C.*,
+      # UART.readline, ...) resolve correctly only under pymcu-stdlib's @inline
+      # CPython overload dispatch (PyMCU 7dcc1c2c). That fix is not on PyPI yet
+      # (PyMCU/PyMCU#437) -- without it, a same-named method's earlier @inline
+      # definitions are invisible under plain CPython (Python's own
+      # last-definition-wins), and this suite would report real, working code as
+      # broken. Checking out PyMCU here and pointing at its lib/ (README.md's
+      # "Running the tests") is the same fix used for local development, kept
+      # in sync until pymcu-stdlib itself carries it.
+      - name: Checkout PyMCU (for pymcu-stdlib with the @inline dispatch fix)
+        uses: actions/checkout@v4
+        with:
+          repository: PyMCU/PyMCU
+          path: PyMCU
+
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -32,4 +47,4 @@ jobs:
         run: uv sync --group dev
 
       - name: Run parity suite
-        run: uv run pytest tests/parity -v --tb=short
+        run: uv run --with pytest --with-editable PyMCU/lib python -m pytest tests/parity -v --tb=short
