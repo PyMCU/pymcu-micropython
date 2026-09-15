@@ -133,7 +133,7 @@ def test_pin_init_mode():
 def test_pin_call_read():
     # pin() is a fast shortcut for pin.value().
     pin = Pin(2, Pin.IN)
-    v = pin(255)        # sentinel = read
+    v = pin()
     assert v == 0
 
 
@@ -141,6 +141,25 @@ def test_pin_call_write():
     pin = Pin(13, Pin.OUT)
     pin(1)
     pin(0)
+
+
+def test_pin_call_write_255_is_not_a_read():
+    # Regression for the value()/mode()/Signal.value() sentinel bug (255
+    # doubled as both "read" and the largest real uint8 value, so
+    # pin(255)/pin.value(255) silently read instead of driving the pin
+    # high): two real overloads means there is no longer a value that
+    # collides with "no argument".
+    pin = Pin(13, Pin.OUT)
+    v = pin(255)
+    assert v == 255
+    v = pin.value(255)
+    assert v == 255
+
+
+def test_pin_mode_write_255_is_not_a_read():
+    pin = Pin(2, Pin.IN)
+    m = pin.mode(255)
+    assert m == 255
 
 
 # ── time_pulse_us ─────────────────────────────────────────────────────────  #

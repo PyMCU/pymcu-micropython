@@ -159,11 +159,16 @@ class Pin:
         self._pin.toggle()
 
     @inline
-    def value(self, x: uint8 = 255) -> uint8:
-        # MicroPython: Pin.value() reads, Pin.value(1) writes.
-        # Sentinel 255 means "read" (no real Optional on MCU).
-        if x == 255:
-            return self._pin.value()
+    def value(self) -> uint8:
+        # MicroPython: Pin.value() reads, Pin.value(1) writes -- two real
+        # overloads (get by arity, not a sentinel default): a sentinel here
+        # collided with 255 itself, the largest value a uint8 holds, so
+        # pin.value(255) silently read instead of driving the pin high the
+        # way MicroPython's own bool(x) truthiness does for any nonzero x.
+        return self._pin.value()
+
+    @inline
+    def value(self, x: uint8) -> uint8:
         self._pin.value(x)
         return x
 
@@ -207,8 +212,13 @@ class Pin:
                     self._pin.init(mode, pull, value, drive, alt)
 
     @inline
-    def __call__(self, x: uint8 = 255) -> uint8:
-        # Fast shortcut equivalent to Pin.value([x])  (MicroPython standard).
+    def __call__(self) -> uint8:
+        # Fast shortcut equivalent to Pin.value() (MicroPython standard).
+        return self.value()
+
+    @inline
+    def __call__(self, x: uint8) -> uint8:
+        # Fast shortcut equivalent to Pin.value(x) (MicroPython standard).
         return self.value(x)
 
     @inline
@@ -221,9 +231,11 @@ class Pin:
         self._pin.irq(trigger, handler)
 
     @inline
-    def mode(self, m: uint8 = 255) -> uint8:
-        if m == 255:
-            return self._pin.mode()
+    def mode(self) -> uint8:
+        return self._pin.mode()
+
+    @inline
+    def mode(self, m: uint8) -> uint8:
         self._pin.mode(m)
         return m
 
@@ -934,15 +946,19 @@ class Signal:
             self._pin.low()
 
     @inline
-    def value(self, x: uint8 = 255) -> uint8:
-        # Read or write the logical (active) value.
-        # value()  -> read: returns 1 if signal is active, 0 if inactive.
-        # value(v) -> write: drives pin to produce the requested logical level.
-        if x == 255:
-            raw: uint8 = self._pin.value()
-            if self._inv:
-                return 1 - raw
-            return raw
+    def value(self) -> uint8:
+        # Read the logical (active) value: 1 if the signal is active, 0 if
+        # inactive. Two real overloads (get by arity), not a sentinel
+        # default -- the same 255-collides-with-255 bug value(x)'s own
+        # rewrite above fixed.
+        raw: uint8 = self._pin.value()
+        if self._inv:
+            return 1 - raw
+        return raw
+
+    @inline
+    def value(self, x: uint8) -> uint8:
+        # Write: drives pin to produce the requested logical level.
         if self._inv:
             self._pin.value(1 - x)
         else:

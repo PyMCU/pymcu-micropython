@@ -319,26 +319,15 @@ status = "documented"
 quote = "this chip's GPIO pins are fixed-function with a fixed drive strength and only edge-triggered external interrupts, so none of them apply."
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
-
 [[deviation]]
 symbol = "machine.Pin.irq"
 status = "tracked:#19"
 reason = "Pin.init()'s value= keyword or a pull() getter is missing; tracked by PyMCU/pymcu-micropython#19."
 
 [[deviation]]
-symbol = "machine.Pin.mode"
-status = "tracked:#13"
-reason = "Uses a 255 sentinel for \"read\" instead of two arity-distinct overloads like PWM's; tracked by PyMCU/pymcu-micropython#13."
-
-[[deviation]]
 symbol = "machine.Pin.pull"
 status = "tracked:#19"
 reason = "Pin.init()'s value= keyword or a pull() getter is missing; tracked by PyMCU/pymcu-micropython#19."
-
-[[deviation]]
-symbol = "machine.Pin.value"
-status = "tracked:#13"
-reason = "Uses a 255 sentinel for \"read\" instead of two arity-distinct overloads like PWM's; tracked by PyMCU/pymcu-micropython#13."
 
 [[deviation]]
 symbol = "machine.RTC"
@@ -391,11 +380,6 @@ reason = "Needs a caller-owned buffer / stop= control where MicroPython returns 
 symbol = "machine.SPI.write_readinto"
 status = "tracked:#14"
 reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
-
-[[deviation]]
-symbol = "machine.Signal.value"
-status = "tracked:#13"
-reason = "Uses a 255 sentinel for \"read\" instead of two arity-distinct overloads like PWM's; tracked by PyMCU/pymcu-micropython#13."
 
 [[deviation]]
 symbol = "machine.SoftI2C.deinit"
