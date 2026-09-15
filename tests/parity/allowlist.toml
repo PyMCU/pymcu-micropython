@@ -1,0 +1,1111 @@
+# Each [[deviation]] is one symbol the parity suite (tests/parity/) does not require to
+# match micropython-rp2-stubs. `status` says why it is allowed to differ:
+#   - "documented": a design decision this repo's own docs explain. `quote` must be an
+#     exact substring of README.md or docs/ (whitespace-normalized) -- the decision has to
+#     actually be written down, not just asserted here.
+#   - "tracked:#N": a real gap, not a decision -- filed as issue #N in
+#     PyMCU/pymcu-micropython. No `quote` is required: there is no design rationale to
+#     quote, only an issue to point at. `reason` names the issue.
+
+
+# -- machine ------------------------------------------------------------
+
+[[deviation]]
+symbol = "machine.ADC.ATTN_0DB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.ATTN_11DB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.ATTN_2_5DB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.ATTN_6DB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.CORE_TEMP"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.CORE_VBAT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.CORE_VREF"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.VREF"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.WIDTH_10BIT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.WIDTH_11BIT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.WIDTH_12BIT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.WIDTH_13BIT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.WIDTH_9BIT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.atten"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADC.width"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADCBlock"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ADCWiPy"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.ATTN_0DB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.deinit"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.init"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.readfrom"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.readfrom_into"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.readfrom_mem"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.readfrom_mem_into"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.readinto"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.scan"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.start"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.stop"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.write"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.writeto"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.writeto_mem"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2C.writevto"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2CTarget"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.I2S"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.PWM.duty_ns"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.PWM.duty_u16"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.PWM.freq"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.PWM.init"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_GPCK"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_I2C"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_OPEN_DRAIN"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_PIO0"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_PIO1"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_PWM"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_SIO"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_SPI"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_UART"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ALT_USB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.ANALOG"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.DRIVE_0"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.DRIVE_1"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.DRIVE_2"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.IRQ_HIGH_LEVEL"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.IRQ_LOW_LEVEL"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.OPEN_DRAIN"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.PULL_HOLD"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.drive"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.init"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.irq"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.mode"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.pull"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Pin.value"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.RTC"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SDCard"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.CONTROLLER"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.LSB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.MSB"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.init"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.read"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.readinto"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.write"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SPI.write_readinto"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Signal.value"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.deinit"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.init"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.readfrom"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.readfrom_into"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.readfrom_mem"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.readfrom_mem_into"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.readinto"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.scan"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.start"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.stop"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.write"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.writeto"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.writeto_mem"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftI2C.writevto"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.SoftSPI"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.Timer.init"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.CTS"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.IDLE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.INV_RX"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.INV_TX"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.IRQ_BREAK"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.IRQ_RX"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.IRQ_RXIDLE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.IRQ_TXIDLE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.RTS"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.deinit"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.flush"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.init"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.irq"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.readinto"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.readline"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.sendbreak"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.txdone"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.UART.write"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.USBDevice"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.bitstream"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.bootloader"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.dht_readinto"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.enable_irq"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.mem32"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.mem_backup"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.reset_cause"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.soft_reset"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "machine.time_pulse_us"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+# -- micropython --------------------------------------------------------
+
+[[deviation]]
+symbol = "micropython.Const_T"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.RingIO"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.alloc_emergency_exception_buf"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.asm_thumb"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.asm_xtensa"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.const"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.heap_lock"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.heap_unlock"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.kbd_intr"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.mem_info"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.native"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.opt_level"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.qstr_info"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.schedule"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.stack_use"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "micropython.viper"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+# -- network ------------------------------------------------------------
+
+[[deviation]]
+symbol = "network.AbstractNIC"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.LAN"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.PPP"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.STAT_CONNECTING"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.STAT_CONNECT_FAIL"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.STAT_GOT_IP"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.STAT_IDLE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.STAT_NO_AP_FOUND"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.STAT_WRONG_PASSWORD"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.BANDWIDTH_20"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.IF_AP"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.IF_STA"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.PM_NONE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.PM_PERFORMANCE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.PM_POWERSAVE"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.PROTOCOL_DEFAULT"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.PROTOCOL_LR"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.SEC_OPEN"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.SEC_WPA2_WPA3"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.SEC_WPA3"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.SEC_WPA_WPA2"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.active"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.config"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.connect"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.deinit"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.disconnect"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.ifconfig"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.ioctl"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.ipconfig"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.scan"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.send_ethernet"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLAN.status"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.WLANWiPy"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.country"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.hostname"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.ipconfig"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "network.route"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+# -- rp2 ----------------------------------------------------------------
+
+[[deviation]]
+symbol = "rp2.DMA"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.DMATimer"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.Flash"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.IRQ_SM0"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.IRQ_SM1"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.IRQ_SM2"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.IRQ_SM3"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.add_program"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.irq"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.remove_program"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIO.state_machine"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIOASMEmit"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.PIOASMError"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.active"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.exec"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.get"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.init"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.irq"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.put"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.restart"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.rx_fifo"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.StateMachine.tx_fifo"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.asm_pio"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.asm_pio_encode"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.bootsel_button"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.const"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "rp2.country"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+# -- time ---------------------------------------------------------------
+
+[[deviation]]
+symbol = "time.gmtime"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.localtime"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.mktime"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.sleep"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.sleep_ms"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.sleep_us"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.ticks_add"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.ticks_diff"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.time"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "time.time_ns"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+# -- utime --------------------------------------------------------------
+
+[[deviation]]
+symbol = "utime.gmtime"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.localtime"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.mktime"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.sleep"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.sleep_ms"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.sleep_us"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.ticks_add"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.ticks_diff"
+status = "tracked:#8"
+reason = "Signature differs from micropython-rp2-stubs; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.time"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."
+
+[[deviation]]
+symbol = "utime.time_ns"
+status = "tracked:#8"
+reason = "Not implemented or not exported yet; tracked by PyMCU/pymcu-micropython#8."

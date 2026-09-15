@@ -162,7 +162,7 @@ def _install_hal_mocks() -> None:
     _reg("pwm",      PWM=_MockPWM)
     _reg("spi",      SPI=_MockSPI)
     _reg("i2c",      I2C=_MockI2C)
-    _reg("timer",    Timer=_MockTimer, millis=lambda: 0, millis_init=lambda: None)
+    _reg("timer",    Timer=_MockTimer, millis=lambda: 0, micros=lambda: 0, millis_init=lambda: None)
     _reg("watchdog", Watchdog=_MockWatchdog)
     _reg("irq",
          enable_interrupts=lambda: None,
@@ -183,7 +183,15 @@ def _install_hal_mocks() -> None:
         raise CompileError(f"pin {n} is not a pin of this board")
 
     _reg("avr.gpio", board_pin_name=_board_pin_name)
-    _reg("wifi",     WiFi=type("WiFi", (), {}))
+    _reg(
+        "wifi",
+        CYW43=type("CYW43", (), {
+            "init": lambda self: None,
+            "join_open": lambda self, ssid: None,
+            "settle": lambda self: None,
+        }),
+        WiFi=type("WiFi", (), {}),
+    )
     _reg("softi2c",  SoftI2C=_MockSoftI2C)
     _reg("eeprom",   EEPROM=_MockEEPROM)
 

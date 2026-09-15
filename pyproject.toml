@@ -18,3 +18,8 @@ packages = ["src/pymcu_micropython"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[dependency-groups]
+dev = [
+    "micropython-rp2-stubs>=1.29.0.post1",
+]

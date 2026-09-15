@@ -1,0 +1,50 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "micropython-rp2-stubs"
+version = "1.29.0.post1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "micropython-stdlib-stubs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/48/10a2aca9600290ed5c0561afddc3f9489f974d08b8107c59f9973b4607be/micropython_rp2_stubs-1.29.0.post1.tar.gz", hash = "sha256:131e0425881f6f535d97b312f42d57ab43834f72acf954749cc0b4f647a275a7", size = 101394, upload-time = "2026-08-30T14:52:50.195Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7c/ae/d8110f61a0aabbf09df1ffb01652beabf9d13396ee9999369854c970ea5e/micropython_rp2_stubs-1.29.0.post1-py2.py3-none-any.whl", hash = "sha256:a26183e4ef7557469fd3387677a8e08cf1bc856a6cbe13acc773e57e94f0625c", size = 131451, upload-time = "2026-08-30T14:52:48.807Z" },
+]
+
+[[package]]
+name = "micropython-stdlib-stubs"
+version = "1.29.0.post2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/e6/3edc7601ecbfb1deaee29e7e8beadb7e2d4877b5ed4f71f0c6644bb7493d/micropython_stdlib_stubs-1.29.0.post2-py3-none-any.whl", hash = "sha256:bdcd54d9896d8e1d455b3a99995d82a8399e1e2c9cb94eacabe278e5c2397783", size = 154274, upload-time = "2026-08-31T11:34:33.329Z" },
+]
+
+[[package]]
+name = "pymcu-micropython"
+version = "0.1.0a2"
+source = { editable = "." }
+dependencies = [
+    { name = "pymcu-stdlib" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "micropython-rp2-stubs" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pymcu-stdlib", specifier = ">=0.1.0a10" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "micropython-rp2-stubs", specifier = ">=1.29.0.post1" }]
+
+[[package]]
+name = "pymcu-stdlib"
+version = "0.1.0a10"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/90/6461a867118199c4b774ca554009d9d75a1cf465a5b646b0109ad8fbfb25/pymcu_stdlib-0.1.0a10-py3-none-any.whl", hash = "sha256:82d3bdc309dfd5ccde7037bd816e7248341107ecb4509da831c75870febcc26c", size = 242246, upload-time = "2026-08-18T09:13:57.847Z" },
+]
