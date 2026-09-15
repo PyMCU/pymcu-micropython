@@ -80,13 +80,21 @@ def _install_hal_mocks() -> None:
         def set_freq(self, f):    pass
 
     class _MockSPI:
-        def __init__(self, cs=""): pass
+        def __init__(self, mode=0, cs="", baudrate=4000000, polarity=0, phase=0, lsb_first=0): pass
+        def configure(self, baudrate=4000000, polarity=0, phase=0, lsb_first=0): pass
         def transfer(self, data): return 0
         def write(self, data):    pass
         def write_bytes(self, buf, n):                 pass
+        def readinto_n(self, buf, n, write_byte):      pass
         def write_readinto_n(self, wbuf, rbuf, n):     pass
         def select(self):         pass
         def deselect(self):       pass
+
+    class _MockSoftSPI:
+        def __init__(self, sck, mosi, miso, mode=0, cs=None, baudrate=500): pass
+        def set_baudrate(self, baudrate): pass
+        def transfer(self, data): return 0
+        def write(self, data):    pass
 
     class _MockI2C:
         def __init__(self):          pass
@@ -196,6 +204,7 @@ def _install_hal_mocks() -> None:
         WiFi=type("WiFi", (), {}),
     )
     _reg("softi2c",  SoftI2C=_MockSoftI2C)
+    _reg("softspi",  SoftSPI=_MockSoftSPI)
     _reg("eeprom",   EEPROM=_MockEEPROM)
 
     # --- pymcu.time (time.py / utime.py import delay_ms, delay_us) ------ #

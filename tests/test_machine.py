@@ -2,7 +2,7 @@ import pytest
 from pymcu.exceptions import CompileError
 
 from pymcu_micropython.machine import (
-    Pin, UART, ADC, PWM, SPI, I2C, time_pulse_us,
+    Pin, UART, ADC, PWM, SPI, SoftSPI, I2C, time_pulse_us,
     Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
     IDLE, SLEEP, DEEPSLEEP,
     PWRON_RESET, HARD_RESET, WDT_RESET, DEEPSLEEP_RESET, SOFT_RESET,
@@ -312,6 +312,55 @@ def test_spi_write_readinto():
     spi = SPI()
     val = spi.write_readinto(0xAB, 0)
     assert val == 0
+
+
+def test_spi_constructor_form():
+    # The documented MicroPython spelling (PyMCU/pymcu-micropython#4): used to
+    # refuse both the id and every keyword.
+    spi = SPI(0, baudrate=1000000, polarity=0, phase=0)
+    spi.write(0xAB)
+
+
+def test_spi_constructor_rejects_other_id():
+    with pytest.raises(CompileError):
+        SPI(1)
+
+
+def test_spi_constructor_rejects_sck_mosi_miso():
+    # This chip's SPI pins are fixed; sck=/mosi=/miso= are refused by name.
+    with pytest.raises(CompileError):
+        SPI(sck=Pin(2))
+
+
+def test_spi_init_reconfigures():
+    spi = SPI()
+    spi.init(baudrate=2000000, polarity=1, phase=1)
+
+
+def test_softspi_requires_pins():
+    with pytest.raises(CompileError):
+        SoftSPI(baudrate=200000)
+
+
+def test_softspi_instantiation_and_transfer():
+    sck = Pin(2, Pin.OUT)
+    mosi = Pin(3, Pin.OUT)
+    miso = Pin(4, Pin.IN)
+    spi = SoftSPI(baudrate=200000, sck=sck, mosi=mosi, miso=miso)
+    spi.write(0xAB)
+    val = spi.read()
+    assert val == 0
+    spi.deinit()
+
+
+def test_softspi_write_readinto():
+    sck = Pin(2, Pin.OUT)
+    mosi = Pin(3, Pin.OUT)
+    miso = Pin(4, Pin.IN)
+    spi = SoftSPI(sck=sck, mosi=mosi, miso=miso)
+    write_buf = bytearray(b"\x01\x02")
+    read_buf = bytearray(2)
+    spi.write_readinto(write_buf, read_buf)
 
 
 # ── I2C ───────────────────────────────────────────────────────────────────  #

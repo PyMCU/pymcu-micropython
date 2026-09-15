@@ -24,6 +24,7 @@ from pymcu.chips import __CHIP__, __FREQ__
 from pymcu.exceptions import CompileError
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.softi2c import SoftI2C as _SoftI2C
+from pymcu.hal.softspi import SoftSPI as _SoftSPI
 from pymcu.hal.uart import UART as _UART
 if __CHIP__.arch == "avr":
     # Imported from the AVR package rather than the pymcu.hal.gpio facade on
@@ -548,14 +549,61 @@ class PWM:
 # SPI
 # ---------------------------------------------------------------------------
 
+# A bare module-level mirror of SPI.MSB, for the same reason machine.py carries
+# one for Timer.PERIODIC: tests/parity's comparison resolves a stub default it
+# cannot evaluate (`firstbit=MSB` in micropython-rp2-stubs' own source, a bare
+# name, not a literal) against this layer function's module globals, where the
+# same bare name has to live for that resolution to find it.
+MSB = 0
+
+
 class SPI:
-    @inline
-    def __init__(self):
-        self._spi = _SPI()
+    # Bit-order constants (MicroPython style).
+    MSB = 0
+    LSB = 1
+    # Role constant (MicroPython style; this HAL's peripheral/target mode is not
+    # exposed here since machine.SPI's real constructor has no way to ask for it).
+    CONTROLLER = 0
 
     @inline
-    def init(self):
-        pass    # SPI initialized in __init__
+    def __init__(self, id: const[uint8] = 0, baudrate: const[uint32] = 1000000, *,
+                 polarity: const[uint8] = 0, phase: const[uint8] = 0,
+                 bits: const[uint8] = 8, firstbit: const[uint8] = 0,
+                 sck: const = None, mosi: const = None, miso: const = None):
+        # MicroPython: SPI(id, baudrate=1_000_000, polarity=0, phase=0, bits=8,
+        # firstbit=SPI.MSB, sck=None, mosi=None, miso=None). This chip has a single SPI
+        # bus with fixed hardware pins (SCK=PB5, MOSI=PB3, MISO=PB4); sck=/mosi=/miso=
+        # are refused by name instead of silently ignored -- use SoftSPI to pick your
+        # own pins. baudrate/polarity/phase/firstbit reprogram the real SPCR/SPSR
+        # registers via the HAL, which already took all four; only forwarding them was
+        # missing.
+        if id != 0:
+            raise CompileError("machine.SPI: this chip has a single SPI bus; id must be 0.")
+        if bits != 8:
+            raise CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
+        if sck is not None or mosi is not None or miso is not None:
+            raise CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
+        # Calls the HAL with firstbit's own value or a literal, never a variable
+        # reassigned from it: a const parameter reassigned through a branch stops
+        # being a compile-time constant to this compiler.
+        if firstbit == SPI.LSB:
+            self._spi = _SPI(0, "", baudrate, polarity, phase, 1)
+        else:
+            self._spi = _SPI(0, "", baudrate, polarity, phase, 0)
+
+    @inline
+    def init(self, baudrate: const[uint32] = 1000000, *, polarity: const[uint8] = 0,
+             phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 0,
+             sck: const = None, mosi: const = None, miso: const = None):
+        # Reprogram a bus that is already running (MicroPython standard).
+        if bits != 8:
+            raise CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
+        if sck is not None or mosi is not None or miso is not None:
+            raise CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
+        if firstbit == SPI.LSB:
+            self._spi.configure(baudrate, polarity, phase, 1)
+        else:
+            self._spi.configure(baudrate, polarity, phase, 0)
 
     @inline
     def deinit(self):
@@ -593,6 +641,100 @@ class SPI:
     def write_readinto(self, write_buf: bytearray, read_buf: bytearray):
         # Matches MicroPython: write_readinto(write_buf, read_buf) infers len from write_buf.
         self._spi.write_readinto_n(write_buf, read_buf, len(write_buf))
+
+
+# ---------------------------------------------------------------------------
+# SoftSPI (bit-bang, MicroPython machine.SoftSPI)
+# ---------------------------------------------------------------------------
+
+class SoftSPI:
+    MSB = 0
+    LSB = 1
+
+    @inline
+    def __init__(self, baudrate: const[uint32] = 500000, *, polarity: const[uint8] = 0,
+                 phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 0,
+                 sck: Pin = None, mosi: Pin = None, miso: Pin = None):
+        # MicroPython: SoftSPI(baudrate=500_000, polarity=0, phase=0, bits=8,
+        # firstbit=SPI.MSB, sck=None, mosi=None, miso=None). Bit-banged, so unlike
+        # hardware SPI there is no fixed pin set to fall back to: sck=/mosi=/miso= are
+        # required. pymcu.hal.softspi.SoftSPI implements mode 0 (polarity=0, phase=0)
+        # MSB-first only; anything else is refused by name.
+        if bits != 8:
+            raise CompileError("machine.SoftSPI: bit-banged transfer is a fixed 8-bit frame; bits=8 only.")
+        if polarity != 0 or phase != 0:
+            raise CompileError("machine.SoftSPI: only mode 0 (polarity=0, phase=0) is implemented.")
+        if firstbit == SoftSPI.LSB:
+            raise CompileError("machine.SoftSPI: only MSB-first (firstbit=SoftSPI.MSB) is implemented.")
+        if sck is None or mosi is None or miso is None:
+            raise CompileError("machine.SoftSPI: sck=/mosi=/miso= are required; bit-banged SPI has no fixed pins to default to.")
+        khz: uint16 = uint16(baudrate // 1000)
+        if khz == 0:
+            khz = 1
+        self._spi = _SoftSPI(sck._pin, mosi._pin, miso._pin, 0, None, khz)
+
+    @inline
+    def init(self, baudrate: const[uint32] = 500000, *, polarity: const[uint8] = 0,
+             phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 0):
+        # Reprogram the clock rate of a bus that is already running (MicroPython
+        # standard). Pins cannot be changed after construction here (they are baked
+        # into which GPIO registers the bit-bang loop touches).
+        if bits != 8:
+            raise CompileError("machine.SoftSPI: bit-banged transfer is a fixed 8-bit frame; bits=8 only.")
+        if polarity != 0 or phase != 0:
+            raise CompileError("machine.SoftSPI: only mode 0 (polarity=0, phase=0) is implemented.")
+        if firstbit == SoftSPI.LSB:
+            raise CompileError("machine.SoftSPI: only MSB-first (firstbit=SoftSPI.MSB) is implemented.")
+        # pymcu.hal.softspi.SoftSPI.set_baudrate() is unreachable here: a compiler bug
+        # (PyMCU/PyMCU#453) loses track of a field a match/case branch in __init__
+        # assigns, once a class also has a Pin-typed field -- SoftSPI has three. Honest
+        # refusal beats calling into a method that miscompiles.
+        raise CompileError("machine.SoftSPI.init: reprogramming the clock rate after construction is blocked by a compiler bug (PyMCU/PyMCU#453). Construct a new SoftSPI at the desired baudrate= instead.")
+
+    @inline
+    def deinit(self):
+        # Bit-banged: nothing to release. Present for API completeness.
+        pass
+
+    @inline
+    def write(self, data: uint8):
+        self._spi.write(data)
+
+    @inline
+    def write(self, buf: bytearray):
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            self._spi.write(buf[i])
+            i = i + 1
+
+    @inline
+    def read(self, write_byte: uint8 = 0xFF) -> uint8:
+        return self._spi.transfer(write_byte)
+
+    @inline
+    def readinto(self, buf: bytearray):
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            buf[i] = self._spi.transfer(0xFF)
+            i = i + 1
+
+    @inline
+    def readinto(self, buf: bytearray, write_byte: uint8):
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            buf[i] = self._spi.transfer(write_byte)
+            i = i + 1
+
+    @inline
+    def write_readinto(self, write_buf: bytearray, read_buf: bytearray):
+        i: uint8 = 0
+        n: uint8 = len(write_buf)
+        while i < n:
+            read_buf[i] = self._spi.transfer(write_buf[i])
+            i = i + 1
 
 
 # ---------------------------------------------------------------------------

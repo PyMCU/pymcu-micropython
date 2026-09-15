@@ -342,26 +342,6 @@ quote = "this chip has no I2S audio peripheral, no real-time-clock block, no SD/
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
-symbol = "machine.SPI.CONTROLLER"
-status = "tracked:#4"
-reason = "machine.SPI's constructor form and SoftSPI are not implemented; tracked by PyMCU/pymcu-micropython#4."
-
-[[deviation]]
-symbol = "machine.SPI.LSB"
-status = "tracked:#4"
-reason = "machine.SPI's constructor form and SoftSPI are not implemented; tracked by PyMCU/pymcu-micropython#4."
-
-[[deviation]]
-symbol = "machine.SPI.MSB"
-status = "tracked:#4"
-reason = "machine.SPI's constructor form and SoftSPI are not implemented; tracked by PyMCU/pymcu-micropython#4."
-
-[[deviation]]
-symbol = "machine.SPI.init"
-status = "tracked:#4"
-reason = "machine.SPI's constructor form and SoftSPI are not implemented; tracked by PyMCU/pymcu-micropython#4."
-
-[[deviation]]
 symbol = "machine.SPI.read"
 status = "tracked:#14"
 reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
@@ -435,11 +415,6 @@ reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode suppor
 symbol = "machine.SoftI2C.writevto"
 status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
-
-[[deviation]]
-symbol = "machine.SoftSPI"
-status = "tracked:#4"
-reason = "machine.SPI's constructor form and SoftSPI are not implemented; tracked by PyMCU/pymcu-micropython#4."
 
 [[deviation]]
 symbol = "machine.Timer.init"
