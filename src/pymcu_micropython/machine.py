@@ -624,13 +624,11 @@ class SPI:
         return self._spi.transfer(write_byte)
 
     @inline
-    def readinto(self, buf: bytearray):
-        # Matches MicroPython: readinto(buf) fills len(buf) bytes; sends 0xFF dummy.
-        self._spi.readinto_n(buf, len(buf), 0xFF)
-
-    @inline
-    def readinto(self, buf: bytearray, write_byte: uint8):
-        # readinto(buf, write_byte) -- custom dummy byte on MOSI.
+    def readinto(self, buf: bytearray, write_byte: uint8 = 0):
+        # MicroPython: readinto(buf, write=0, /) fills len(buf) bytes, sending
+        # write_byte as the dummy byte on MOSI for each one. One overload, not two:
+        # the stub declares a single default-valued parameter, and this matches its
+        # default (0) exactly instead of this layer's own former 0xFF.
         self._spi.readinto_n(buf, len(buf), write_byte)
 
     @inline
@@ -786,13 +784,33 @@ class I2C:
         return count
 
     @inline
-    def writeto(self, addr: uint8, data: uint8):
-        self._i2c.writebyte(addr, data)
+    def writeto(self, addr: uint8, data: uint8, stop: uint8 = 1):
+        # MicroPython: writeto(addr, buf, stop=True, /) -- stop=False holds the bus with
+        # a repeated START instead of releasing it, for a following readfrom*(). `stop`
+        # is a plain (not keyword-only) parameter: the real stub marks it
+        # positional-only, and MicroPython code calls it that way in practice, which
+        # also keeps a keyword call from ever reaching a name with more than one
+        # @inline overload (PyMCU/PyMCU#447).
+        if stop:
+            self._i2c.writebyte(addr, data)
+        else:
+            self._i2c.start()
+            self._i2c.write(addr << 1)
+            self._i2c.write(data)
 
     @inline
-    def writeto(self, addr: uint8, buf: bytearray):
+    def writeto(self, addr: uint8, buf: bytearray, stop: uint8 = 1):
         # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
-        self._i2c.write_bytes(addr, buf, len(buf))
+        if stop:
+            self._i2c.write_bytes(addr, buf, len(buf))
+        else:
+            self._i2c.start()
+            self._i2c.write(addr << 1)
+            i: uint8 = 0
+            n: uint8 = len(buf)
+            while i < n:
+                self._i2c.write(buf[i])
+                i = i + 1
 
     @inline
     def readfrom(self, addr: uint8) -> uint8:
@@ -803,10 +821,94 @@ class I2C:
         return val
 
     @inline
-    def readfrom_into(self, addr: uint8, buf: bytearray) -> uint8:
-        # Matches MicroPython: readfrom_into(addr, buf) fills len(buf) bytes.
-        # Returns 1 on success, 0 on NACK (MicroPython returns None; PyMCU reports status).
-        return self._i2c.read_n(addr, buf, len(buf))
+    def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
+        # Matches MicroPython: readfrom_into(addr, buf, stop=True, /) fills len(buf)
+        # bytes. Returns 1 on success, 0 on NACK (MicroPython returns None; PyMCU
+        # reports status). stop=False leaves the bus held for a following operation.
+        if stop:
+            return self._i2c.read_n(addr, buf, len(buf))
+        self._i2c.start()
+        self._i2c.write((addr << 1) | 1)
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            if i == n - 1:
+                buf[i] = self._i2c.read_nack()
+            else:
+                buf[i] = self._i2c.read_ack()
+            i = i + 1
+        return 1
+
+    @inline
+    def start(self):
+        # MicroPython: start(). Raw primitive for manually-sequenced transactions.
+        self._i2c.start()
+
+    @inline
+    def stop(self):
+        self._i2c.stop()
+
+    @inline
+    def write(self, buf: bytearray) -> uint8:
+        # MicroPython: write(buf) writes buf during a manually start()/stop()-sequenced
+        # transaction. Returns the number of ACKs received.
+        acks: uint8 = 0
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            status: uint8 = self._i2c.write(buf[i])
+            if status == 0x18 or status == 0x28:
+                acks = acks + 1
+            i = i + 1
+        return acks
+
+    @inline
+    def readinto(self, buf: bytearray, nack: uint8 = 1):
+        # MicroPython: readinto(buf, nack=True, /). nack=True (the normal case) sends
+        # NACK after the last byte; nack=False sends ACK even for the last byte, for a
+        # read that will be followed by more reads before stop().
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            if i == n - 1 and nack:
+                buf[i] = self._i2c.read_nack()
+            else:
+                buf[i] = self._i2c.read_ack()
+            i = i + 1
+
+    @inline
+    def writeto_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
+        # MicroPython: writeto_mem(addr, memaddr, buf, /, *, addrsize=8). This chip's
+        # TWI addresses an 8-bit register; addrsize is accepted and refused for
+        # anything else instead of silently ignored.
+        if addrsize != 8:
+            raise CompileError("machine.I2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+        if len(buf) == 1:
+            return self._i2c.writeto_mem(addr, memaddr, buf[0])
+        self._i2c.start()
+        self._i2c.write(addr << 1)
+        self._i2c.write(memaddr)
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            self._i2c.write(buf[i])
+            i = i + 1
+        self._i2c.stop()
+        return 1
+
+    @inline
+    def readfrom_mem_into(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
+        # MicroPython: readfrom_mem_into(addr, memaddr, buf, /, *, addrsize=8).
+        if addrsize != 8:
+            raise CompileError("machine.I2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+        return self._i2c.readfrom_mem(addr, memaddr, buf, len(buf))
+
+    @inline
+    def readfrom_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, n: uint8) -> uint8:
+        # PyMCU extension: caller-owned buffer where MicroPython's real
+        # readfrom_mem(addr, memaddr, nbytes) returns a fresh bytes object (no heap on
+        # this chip). Use readfrom_mem_into(addr, memaddr, buf) for the faithful form.
+        return self._i2c.readfrom_mem(addr, memaddr, buf, n)
 
 
 # ---------------------------------------------------------------------------
@@ -853,17 +955,142 @@ class SoftI2C:
         return count
 
     @inline
-    def writeto(self, addr: uint8, data: uint8):
-        self._bus.write_to(addr, data)
+    def writeto(self, addr: uint8, data: uint8, stop: uint8 = 1):
+        # See machine.I2C.writeto: stop is a plain (not keyword-only) parameter on
+        # purpose (PyMCU/PyMCU#447).
+        if stop:
+            self._bus.write_to(addr, data)
+        else:
+            self._bus.start()
+            self._bus.write(addr << 1)
+            self._bus.write(data)
 
     @inline
-    def writeto(self, addr: uint8, buf: bytearray):
+    def writeto(self, addr: uint8, buf: bytearray, stop: uint8 = 1):
         # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
-        self._bus.write_bytes(addr, buf, len(buf))
+        if stop:
+            self._bus.write_bytes(addr, buf, len(buf))
+        else:
+            self._bus.start()
+            self._bus.write(addr << 1)
+            i: uint8 = 0
+            n: uint8 = len(buf)
+            while i < n:
+                self._bus.write(buf[i])
+                i = i + 1
 
     @inline
     def readfrom(self, addr: uint8) -> uint8:
         return self._bus.read_from(addr)
+
+    @inline
+    def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
+        # Matches MicroPython: readfrom_into(addr, buf, stop=True, /) fills len(buf)
+        # bytes.
+        self._bus.start()
+        self._bus.write((addr << 1) | 1)
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            if i == n - 1:
+                buf[i] = self._bus.read(0)
+            else:
+                buf[i] = self._bus.read(1)
+            i = i + 1
+        if stop:
+            self._bus.stop()
+        return 1
+
+    @inline
+    def start(self):
+        self._bus.start()
+
+    @inline
+    def stop(self):
+        self._bus.stop()
+
+    @inline
+    def write(self, buf: bytearray) -> uint8:
+        # MicroPython: write(buf) writes buf during a manually start()/stop()-sequenced
+        # transaction. Returns the number of ACKs received.
+        acks: uint8 = 0
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            if self._bus.write(buf[i]) == 0:
+                acks = acks + 1
+            i = i + 1
+        return acks
+
+    @inline
+    def readinto(self, buf: bytearray, nack: uint8 = 1):
+        # MicroPython: readinto(buf, nack=True, /).
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            if i == n - 1 and nack:
+                buf[i] = self._bus.read(0)
+            else:
+                buf[i] = self._bus.read(1)
+            i = i + 1
+
+    @inline
+    def writeto_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
+        # MicroPython: writeto_mem(addr, memaddr, buf, /, *, addrsize=8).
+        if addrsize != 8:
+            raise CompileError("machine.SoftI2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+        self._bus.start()
+        self._bus.write(addr << 1)
+        self._bus.write(memaddr)
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            self._bus.write(buf[i])
+            i = i + 1
+        self._bus.stop()
+        return 1
+
+    @inline
+    def readfrom_mem_into(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
+        # MicroPython: readfrom_mem_into(addr, memaddr, buf, /, *, addrsize=8).
+        if addrsize != 8:
+            raise CompileError("machine.SoftI2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+        self._bus.start()
+        self._bus.write(addr << 1)
+        self._bus.write(memaddr)
+        self._bus.start()
+        self._bus.write((addr << 1) | 1)
+        i: uint8 = 0
+        n: uint8 = len(buf)
+        while i < n:
+            if i == n - 1:
+                buf[i] = self._bus.read(0)
+            else:
+                buf[i] = self._bus.read(1)
+            i = i + 1
+        self._bus.stop()
+        return 1
+
+    @inline
+    def readfrom_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, n: uint8) -> uint8:
+        # PyMCU extension: caller-owned buffer and explicit count where MicroPython's
+        # real readfrom_mem(addr, memaddr, nbytes) returns a fresh bytes object (no
+        # heap on this chip). Use readfrom_mem_into(addr, memaddr, buf) for the
+        # faithful form (count is len(buf) there).
+        self._bus.start()
+        self._bus.write(addr << 1)
+        self._bus.write(memaddr)
+        self._bus.start()
+        self._bus.write((addr << 1) | 1)
+        i: uint8 = 0
+        while i < n:
+            if i == n - 1:
+                buf[i] = self._bus.read(0)
+            else:
+                buf[i] = self._bus.read(1)
+            i = i + 1
+        self._bus.stop()
+        return 1
 
 
 # ---------------------------------------------------------------------------

@@ -68,3 +68,12 @@ only the free-running `ticks_ms()`/`ticks_us()` counters are available.
 MicroPython's own stub file marks `PWM.init()`'s `freq`, `duty_u16`, `duty_ns` and `invert`
 keyword defaults as `...` (implementation-defined); this layer's concrete `0` defaults are the
 actual values applied when a keyword is omitted.
+
+## Reading a variable amount of data with no heap
+
+`machine.I2C.readfrom_mem(addr, memaddr, nbytes)` returns a freshly-allocated `bytes` object
+of `nbytes`; this chip has no heap to allocate one from, so this layer's `readfrom_mem(addr,
+memaddr, buf, n)` takes a caller-owned buffer and a count instead, the same deviation
+`machine.SPI.read(nbytes)` and `machine.UART.readline()`'s no-argument form already carry (see
+their own docstrings) -- `readfrom_mem_into(addr, memaddr, buf)`, `SPI.readinto(buf)` and
+`UART.readline(buf)` are the faithful, buffer-based equivalents.

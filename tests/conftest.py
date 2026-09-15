@@ -103,11 +103,15 @@ def _install_hal_mocks() -> None:
         def writebyte(self, addr, b):        return 0
         def write_to(self, addr, d): return 0
         def read_from(self, addr):   return 0
+        def read_ack(self):          return 0
         def read_nack(self):         return 0
+        def read_n(self, addr, buf, n): return 0
         def start(self):             pass
         def stop(self):              pass
-        def write(self, data):       pass
+        def write(self, data):       return 0
         def read(self):              return 0
+        def writeto_mem(self, addr, reg, data): return 0
+        def readfrom_mem(self, addr, reg, buf, n): return 0
 
     class _MockTimer:
         IRQ_OVF   = 1
@@ -146,6 +150,7 @@ def _install_hal_mocks() -> None:
         def write(self, data):                   return 0
         def read(self, send_ack):                return 0
         def write_to(self, addr, data):          return 0
+        def write_bytes(self, addr, buf, n):     return 0
         def read_from(self, addr):               return 0
         def ping(self, addr):                    return 0
 

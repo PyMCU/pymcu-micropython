@@ -2,7 +2,7 @@ import pytest
 from pymcu.exceptions import CompileError
 
 from pymcu_micropython.machine import (
-    Pin, UART, ADC, PWM, SPI, SoftSPI, I2C, time_pulse_us,
+    Pin, UART, ADC, PWM, SPI, SoftSPI, I2C, SoftI2C, time_pulse_us,
     Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
     IDLE, SLEEP, DEEPSLEEP,
     PWRON_RESET, HARD_RESET, WDT_RESET, DEEPSLEEP_RESET, SOFT_RESET,
@@ -386,6 +386,89 @@ def test_i2c_scan_returns_int():
     count = i2c.scan()
     assert isinstance(count, int)
     assert count == 0  # mock always returns 0 from ping
+
+
+def test_i2c_writeto_stop_false():
+    # PyMCU/pymcu-micropython#14/#15: stop=False holds the bus for a following
+    # readfrom*() instead of releasing it. stop is a plain, not keyword-only,
+    # parameter (PyMCU/PyMCU#447: keyword args refused past one @inline overload).
+    i2c = I2C()
+    i2c.writeto(0x68, 0x00, 0)
+    i2c.writeto(0x68, bytearray(b"\x01\x02"), 0)
+
+
+def test_i2c_readfrom_into_stop_false():
+    i2c = I2C()
+    buf = bytearray(2)
+    i2c.readfrom_into(0x68, buf, 0)
+
+
+def test_i2c_raw_primitives():
+    i2c = I2C()
+    i2c.start()
+    i2c.stop()
+    acks = i2c.write(bytearray(b"\x01\x02"))
+    assert isinstance(acks, int)
+    buf = bytearray(2)
+    i2c.readinto(buf)
+    i2c.readinto(buf, 0)
+
+
+def test_i2c_mem_helpers():
+    i2c = I2C()
+    i2c.writeto_mem(0x68, 0x00, bytearray(b"\x01"))
+    buf = bytearray(2)
+    i2c.readfrom_mem_into(0x68, 0x00, buf)
+    i2c.readfrom_mem(0x68, 0x00, buf, 2)
+
+
+def test_i2c_mem_helpers_reject_addrsize():
+    i2c = I2C()
+    with pytest.raises(CompileError):
+        i2c.writeto_mem(0x68, 0x00, bytearray(b"\x01"), addrsize=16)
+    with pytest.raises(CompileError):
+        i2c.readfrom_mem_into(0x68, 0x00, bytearray(2), addrsize=16)
+
+
+# ── SoftI2C (machine module) ────────────────────────────────────────────── #
+
+def test_softi2c_writeto_stop_false():
+    scl = Pin(5, Pin.OUT)
+    sda = Pin(4, Pin.OUT)
+    i2c = SoftI2C(scl, sda)
+    i2c.writeto(0x48, 0xA5, 0)
+    i2c.writeto(0x48, bytearray(b"\x01\x02"), 0)
+
+
+def test_softi2c_readfrom_into():
+    scl = Pin(5, Pin.OUT)
+    sda = Pin(4, Pin.OUT)
+    i2c = SoftI2C(scl, sda)
+    buf = bytearray(2)
+    i2c.readfrom_into(0x48, buf)
+    i2c.readfrom_into(0x48, buf, 0)
+
+
+def test_softi2c_raw_primitives():
+    scl = Pin(5, Pin.OUT)
+    sda = Pin(4, Pin.OUT)
+    i2c = SoftI2C(scl, sda)
+    i2c.start()
+    i2c.stop()
+    acks = i2c.write(bytearray(b"\x01"))
+    assert isinstance(acks, int)
+    buf = bytearray(2)
+    i2c.readinto(buf)
+
+
+def test_softi2c_mem_helpers():
+    scl = Pin(5, Pin.OUT)
+    sda = Pin(4, Pin.OUT)
+    i2c = SoftI2C(scl, sda)
+    i2c.writeto_mem(0x48, 0x00, bytearray(b"\x01"))
+    buf = bytearray(2)
+    i2c.readfrom_mem_into(0x48, 0x00, buf)
+    i2c.readfrom_mem(0x48, 0x00, buf, 2)
 
 
 # ── Module-level constants ────────────────────────────────────────────────  #
