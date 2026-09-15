@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  # API parity against micropython-rp2-stubs: pure CPython, no compiler needed.
+  parity:
+    name: API Parity (CPython)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies (incl. micropython-rp2-stubs)
+        run: uv sync --group dev
+
+      - name: Run parity suite
+        run: uv run pytest tests/parity -v --tb=short

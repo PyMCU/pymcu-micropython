@@ -79,6 +79,9 @@ either a hardware/architecture limit of this class of AVR chip -- documented in
 [`docs/limitations.md`](docs/limitations.md) -- or a real, tracked gap referenced from
 [`docs/parity.md`](docs/parity.md), which the suite regenerates.
 
+The suite runs on every push and PR via `.github/workflows/ci.yml` (pure CPython, no compiler
+needed).
+
 ## License
 
 See [LICENSE](LICENSE) for details.
