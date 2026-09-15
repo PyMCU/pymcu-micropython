@@ -168,10 +168,43 @@ class Pin:
         return x
 
     @inline
-    def init(self, mode: const[uint8] = 255, pull: const[uint8] = 255):
-        # Re-initialise the pin (MicroPython standard).  Uses sentinel 255
-        # for "unchanged" (== uint8 representation of -1 used by hal).
-        self._pin.init(mode, pull)
+    def init(self, mode: const[uint8] = -1, pull: const[uint8] = -1, *,
+             value: const = None, drive: const = None, alt: const = None):
+        # MicroPython: init(mode=-1, pull=-1, *, value=None, drive=None, alt=None). -1
+        # means "leave unchanged" for mode/pull on both this layer and the HAL (an unsigned
+        # uint8's own two's-complement -1, verified byte-identical to the old literal 255
+        # spelling this replaces). The HAL's own init() already takes value/drive/alt with
+        # a matching -1-is-unchanged convention (drive's is 0, alt's is -1), so only the
+        # None-to-sentinel translation lives here. drive=/alt= select the RP2040's pin-mux
+        # and drive-strength, which this chip's GPIO does not have (docs/limitations.md):
+        # passing either raises, the same as pymcu.hal.avr.gpio.Pin.init() already does.
+        #
+        # Each leaf below calls the HAL with only mode/pull/value/drive/alt themselves or
+        # a literal -1/0 sentinel -- never a variable reassigned from one of those two --
+        # because `const` parameters stay compile-time constants only along a straight
+        # binding, not through a branch that reassigns a fresh local from them.
+        if value is None:
+            if drive is None:
+                if alt is None:
+                    self._pin.init(mode, pull)
+                else:
+                    self._pin.init(mode, pull, -1, 0, alt)
+            else:
+                if alt is None:
+                    self._pin.init(mode, pull, -1, drive)
+                else:
+                    self._pin.init(mode, pull, -1, drive, alt)
+        else:
+            if drive is None:
+                if alt is None:
+                    self._pin.init(mode, pull, value)
+                else:
+                    self._pin.init(mode, pull, value, 0, alt)
+            else:
+                if alt is None:
+                    self._pin.init(mode, pull, value, drive)
+                else:
+                    self._pin.init(mode, pull, value, drive, alt)
 
     @inline
     def __call__(self, x: uint8 = 255) -> uint8:

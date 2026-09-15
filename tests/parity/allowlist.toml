@@ -319,10 +319,6 @@ status = "documented"
 quote = "this chip's GPIO pins are fixed-function with a fixed drive strength and only edge-triggered external interrupts, so none of them apply."
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
-[[deviation]]
-symbol = "machine.Pin.init"
-status = "tracked:#19"
-reason = "Pin.init()'s value= keyword or a pull() getter is missing; tracked by PyMCU/pymcu-micropython#19."
 
 [[deviation]]
 symbol = "machine.Pin.irq"
