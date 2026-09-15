@@ -7,7 +7,6 @@
 #     PyMCU/pymcu-micropython. No `quote` is required: there is no design rationale to
 #     quote, only an issue to point at. `reason` names the issue.
 
-
 # -- machine ---------------------------------------------------------------
 
 [[deviation]]
@@ -154,11 +153,6 @@ status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
 
 [[deviation]]
-symbol = "machine.I2C.scan"
-status = "tracked:#14"
-reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
-
-[[deviation]]
 symbol = "machine.I2C.start"
 status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
@@ -198,21 +192,6 @@ symbol = "machine.I2S"
 status = "documented"
 quote = "this chip has no I2S audio peripheral, no real-time-clock block, no SD/SDIO controller and no USB device controller."
 reason = "Documented limitation for this chip; see docs/limitations.md."
-
-[[deviation]]
-symbol = "machine.PWM.duty_ns"
-status = "tracked:#12"
-reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
-
-[[deviation]]
-symbol = "machine.PWM.duty_u16"
-status = "tracked:#12"
-reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
-
-[[deviation]]
-symbol = "machine.PWM.freq"
-status = "tracked:#12"
-reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
 symbol = "machine.PWM.init"
@@ -433,11 +412,6 @@ status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
 
 [[deviation]]
-symbol = "machine.SoftI2C.readfrom"
-status = "tracked:#14"
-reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
-
-[[deviation]]
 symbol = "machine.SoftI2C.readfrom_into"
 status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
@@ -458,11 +432,6 @@ status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
 
 [[deviation]]
-symbol = "machine.SoftI2C.scan"
-status = "tracked:#14"
-reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
-
-[[deviation]]
 symbol = "machine.SoftI2C.start"
 status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
@@ -476,11 +445,6 @@ reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode suppor
 symbol = "machine.SoftI2C.write"
 status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
-
-[[deviation]]
-symbol = "machine.SoftI2C.writeto"
-status = "tracked:#14"
-reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
 
 [[deviation]]
 symbol = "machine.SoftI2C.writeto_mem"
@@ -582,11 +546,6 @@ status = "tracked:#12"
 reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
-symbol = "machine.UART.readline"
-status = "tracked:#14"
-reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
-
-[[deviation]]
 symbol = "machine.UART.sendbreak"
 status = "tracked:#16"
 reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
@@ -645,12 +604,10 @@ symbol = "machine.reset_cause"
 status = "tracked:#17"
 reason = "Not implemented though the MCUSR register that backs it exists in hardware; tracked by PyMCU/pymcu-micropython#17."
 
-
 [[deviation]]
 symbol = "machine.time_pulse_us"
 status = "tracked:#12"
 reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
-
 
 # -- micropython -----------------------------------------------------------
 
@@ -746,7 +703,6 @@ reason = "Documented limitation for this chip; see docs/limitations.md."
 symbol = "micropython.viper"
 status = "tracked:#12"
 reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
-
 
 # -- network ---------------------------------------------------------------
 
@@ -972,7 +928,6 @@ status = "documented"
 quote = "this class of AVR chip has no radio hardware, so `network.WLAN`, `network.LAN`, `network.PPP` and the module-level network helpers and constants have nothing to control."
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
-
 # -- rp2 -------------------------------------------------------------------
 
 [[deviation]]
@@ -1137,7 +1092,6 @@ status = "documented"
 quote = "`rp2` targets the RP2040/RP2350 PIO state machines and DMA channels, neither of which exists on this class of AVR chip, so `rp2.PIO`, `rp2.StateMachine`, `rp2.DMA` and the module-level `rp2` helpers are not implemented."
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
-
 # -- time ------------------------------------------------------------------
 
 [[deviation]]
@@ -1194,7 +1148,6 @@ symbol = "time.time_ns"
 status = "documented"
 quote = "this chip has no RTC peripheral, so only the free-running `ticks_ms()`/`ticks_us()` counters are available."
 reason = "Documented limitation for this chip; see docs/limitations.md."
-
 
 # -- utime -----------------------------------------------------------------
 

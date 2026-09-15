@@ -189,9 +189,23 @@ def check_case(case: Case) -> Result:
     return Result(True, "provided", "ok")
 
 
+def layer_candidate_signatures(value: Any) -> list[inspect.Signature]:
+    # A layer method with more than one same-named @inline definition is
+    # pymcu.types._Overloads, not a plain function: the compiler picks between
+    # its `_fns` by argument type at compile time, and CPython (tests/parity's
+    # own import) does the same at call time -- see pymcu.types.inline. There
+    # is no single call signature to inspect, so every overload's own
+    # signature is a candidate, the same way candidate_signatures() already
+    # treats a StubFunction's several stub overloads as candidates.
+    fns = getattr(value, "_fns", None)
+    if fns:
+        return [inspect.signature(fn) for fn in fns]
+    return [inspect.signature(value)]
+
+
 def compare_signatures(symbol: str, layer_func: Any, stub_func: Any) -> Result:
     try:
-        layer_signature = inspect.signature(layer_func)
+        layer_signatures = layer_candidate_signatures(layer_func)
     except Exception as exc:
         return Result(False, f"{symbol}: could not inspect layer signature: {exc}", "signature")
 
@@ -204,18 +218,34 @@ def compare_signatures(symbol: str, layer_func: Any, stub_func: Any) -> Result:
     # even when the two mean the same value, so a _DefaultExpr is resolved against the
     # layer function's own module globals -- where the same dotted name lives -- and
     # compared by value instead of by source spelling.
-    resolve_ns = getattr(layer_func, "__globals__", None)
-    layer_shape = signature_shape(layer_signature)
+    fns = getattr(layer_func, "_fns", None)
+    resolve_ns = getattr(fns[0] if fns else layer_func, "__globals__", None)
+    layer_shapes = [signature_shape(signature) for signature in layer_signatures]
     stub_signatures = candidate_signatures(stub_func)
     stub_shapes = [signature_shape(signature, resolve_ns) for signature in stub_signatures]
-    if layer_shape in stub_shapes:
+    if any(shape in stub_shapes for shape in layer_shapes):
         return Result(True, "provided", "ok")
 
-    if symbol.endswith(".__exit__") and is_exit_compatible(layer_signature):
+    if any(_is_catchall_stub_shape(shape) for shape in stub_shapes):
+        # `micropython-rp2-stubs` gives some overridden members of a subclass
+        # (SoftI2C/SoftSPI redeclaring every method it shares with I2C/SPI, per
+        # their own docstrings: "these classes have the same methods
+        # available") a bare `(self, *args, **kwargs) -> Incomplete` instead
+        # of repeating the base class's real signature -- a typeshed
+        # "deliberately incomplete here" marker, not a claim that the real
+        # runtime method takes arbitrary arguments. No concrete, faithful
+        # signature can equal that catch-all without also being written as
+        # `(*args, **kwargs)`, which would be less faithful, not more, so a
+        # catch-all stub shape accepts any real layer shape for that member.
+        return Result(True, "provided", "ok")
+
+    if symbol.endswith(".__exit__") and any(
+        is_exit_compatible(signature) for signature in layer_signatures
+    ):
         return Result(True, "provided", "ok")
 
     expected = " or ".join(format_shape(shape) for shape in stub_shapes)
-    actual = format_shape(layer_shape)
+    actual = " or ".join(format_shape(shape) for shape in layer_shapes)
     return Result(
         False,
         f"{symbol}: signature mismatch; expected {expected}, found {actual}",
@@ -514,6 +544,11 @@ def candidate_signatures(value: Any) -> list[inspect.Signature]:
 # spellings of "no bound" are compared as equal here rather than by literal value.
 _SLICE_END_PARAMS = {"end", "out_end", "in_end"}
 _END_OF_BUFFER = "<end-of-buffer, however this width spells it>"
+
+
+def _is_catchall_stub_shape(shape: tuple[tuple[str, str, str], ...]) -> bool:
+    rest = shape[1:]  # drop self
+    return bool(rest) and all(kind in ("VAR_POSITIONAL", "VAR_KEYWORD") for _, kind, _ in rest)
 
 
 def signature_shape(
