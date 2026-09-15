@@ -1092,6 +1092,12 @@ class SoftI2C:
         self._bus.stop()
         return 1
 
+    @inline
+    def deinit(self):
+        # Bit-banged: nothing to release (the pins stay whatever machine.Pin.init()
+        # configured them as). Present for API completeness, matching SoftSPI.deinit().
+        pass
+
 
 # ---------------------------------------------------------------------------
 # freq: CPU clock frequency

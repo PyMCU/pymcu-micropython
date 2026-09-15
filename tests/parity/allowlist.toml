@@ -129,8 +129,9 @@ reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode suppor
 
 [[deviation]]
 symbol = "machine.I2C.readfrom"
-status = "tracked:#14"
-reason = "Needs a caller-owned buffer / stop= control where MicroPython returns a heap object or takes stop=; tracked by PyMCU/pymcu-micropython#14."
+status = "documented"
+quote = "this chip has no heap to allocate one from, so this layer's"
+reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
 symbol = "machine.I2C.readfrom_into"
@@ -352,11 +353,6 @@ reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); t
 symbol = "machine.SPI.write_readinto"
 status = "tracked:#12"
 reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
-
-[[deviation]]
-symbol = "machine.SoftI2C.deinit"
-status = "tracked:#15"
-reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
 
 [[deviation]]
 symbol = "machine.SoftI2C.init"
