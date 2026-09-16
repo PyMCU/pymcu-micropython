@@ -393,7 +393,7 @@ class ADC:
         self._adc = _AnalogPin(pin_name)
 
     @inline
-    def __init__(self, other: ADC):
+    def __init__(self, other: "ADC"):
         # ADC(an_adc) is the identity. A driver that takes "an ADC or something an ADC can be
         # made from" calls ADC() on whatever it was given, and LM35(ADC(Pin("PC0"))) is that
         # shape: LM35.__init__ calls ADC(pin) again on a value that is already one.
@@ -1382,5 +1382,4 @@ class _Mem16:
 
 mem8  = _Mem8()
 mem16 = _Mem16()
-
 

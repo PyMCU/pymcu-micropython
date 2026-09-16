@@ -229,6 +229,11 @@ def test_adc_instantiation():
     assert adc is not None
 
 
+def test_adc_from_adc_preserves_the_underlying_channel():
+    adc = ADC(0)
+    assert ADC(adc)._adc is adc._adc
+
+
 def test_adc_has_read_methods():
     adc = ADC(0)
     assert callable(adc.read)
