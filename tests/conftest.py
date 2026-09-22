@@ -97,21 +97,60 @@ def _install_hal_mocks() -> None:
         def write(self, data):    pass
 
     class _MockI2C:
-        def __init__(self):          pass
-        def ping(self, addr):        return 0
-        def write_bytes(self, addr, buf, n): return 0
-        def writebyte(self, addr, b):        return 0
-        def write_to(self, addr, d): return 0
+        # In step with pymcu.hal.i2c.I2C: start()/write() return the TWI status the
+        # hardware leaves in TWSR (0x08/0x10 START, 0x18 SLA+W ACK, 0x28 data ACK,
+        # 0x40 SLA+R ACK; 0x20/0x30/0x48 NACKs, 0xFF bus timeout), and the composite
+        # helpers return 1 on a fully ACKed transaction.
+        START     = 0x08
+        RESTART   = 0x10
+        SLA_ACK   = 0x18
+        SLA_NACK  = 0x20
+        DATA_ACK  = 0x28
+        SLA_R_ACK = 0x40
+
+        def __init__(self):
+            # Test knobs: 7-bit addresses that NACK their SLA, a flag that NACKs
+            # every data byte after an acknowledged address, and a wedged START.
+            self.nack: set = set()
+            self.nack_data = False
+            self.fail_start = False
+            self._expect_sla = False
+
+        def ping(self, addr):        return 0 if addr in self.nack else 1
+        def write_bytes(self, addr, buf, n):
+            if self.fail_start: return 0xFF
+            return 0 if addr in self.nack or self.nack_data else 1
+        def writebyte(self, addr, b):
+            if self.fail_start: return 0xFF
+            return 0x20 if addr in self.nack else (0x30 if self.nack_data else 1)
+        def write_to(self, addr, d):
+            if self.fail_start: return 0xFF
+            return 0 if addr in self.nack or self.nack_data else 1
         def read_from(self, addr):   return 0
         def read_ack(self):          return 0
         def read_nack(self):         return 0
-        def read_n(self, addr, buf, n): return 0
-        def start(self):             pass
-        def stop(self):              pass
-        def write(self, data):       return 0
+        def read_n(self, addr, buf, n):
+            if self.fail_start: return 0xFF
+            return 0 if addr in self.nack else 1
+        def start(self):
+            self._expect_sla = True
+            return 0xFF if self.fail_start else self.START
+        def stop(self):
+            self._expect_sla = False
+        def write(self, data):
+            if self._expect_sla:
+                self._expect_sla = False
+                if (data >> 1) in self.nack:
+                    return 0x48 if data & 1 else self.SLA_NACK
+                return self.SLA_R_ACK if data & 1 else self.SLA_ACK
+            return 0x30 if self.nack_data else self.DATA_ACK
         def read(self):              return 0
-        def writeto_mem(self, addr, reg, data): return 0
-        def readfrom_mem(self, addr, reg, buf, n): return 0
+        def writeto_mem(self, addr, reg, data):
+            if self.fail_start: return 0xFF
+            return 0 if addr in self.nack or self.nack_data else 1
+        def readfrom_mem(self, addr, reg, buf, n):
+            if self.fail_start: return 0xFF
+            return 0 if addr in self.nack else 1
 
     class _MockTimer:
         IRQ_OVF   = 1
@@ -143,16 +182,31 @@ def _install_hal_mocks() -> None:
         def deselect(self):         pass
 
     class _MockSoftI2C:
-        def __init__(self, scl, sda, half_us=5): pass
+        # In step with pymcu.hal.softi2c.SoftI2C: write() returns the ACK bit
+        # (0 = ACK, 1 = NACK) and the composite helpers return 1 on a fully
+        # ACKed transaction.
+        def __init__(self, scl, sda, half_us=5):
+            # Test knobs: 7-bit addresses that NACK their SLA, and a flag that
+            # NACKs every data byte after an acknowledged address.
+            self.nack: set = set()
+            self.nack_data = False
+            self._expect_sla = False
+
         def init(self):                          pass
-        def start(self):                         pass
-        def stop(self):                          pass
-        def write(self, data):                   return 0
+        def start(self):                         self._expect_sla = True
+        def stop(self):                          self._expect_sla = False
+        def write(self, data):
+            if self._expect_sla:
+                self._expect_sla = False
+                return 1 if (data >> 1) in self.nack else 0
+            return 1 if self.nack_data else 0
         def read(self, send_ack):                return 0
-        def write_to(self, addr, data):          return 0
-        def write_bytes(self, addr, buf, n):     return 0
+        def write_to(self, addr, data):
+            return 0 if addr in self.nack or self.nack_data else 1
+        def write_bytes(self, addr, buf, n):
+            return 0 if addr in self.nack or self.nack_data else 1
         def read_from(self, addr):               return 0
-        def ping(self, addr):                    return 0
+        def ping(self, addr):                    return 0 if addr in self.nack else 1
 
     class _MockEEPROM:
         def __init__(self):           pass

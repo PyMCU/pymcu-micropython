@@ -101,9 +101,10 @@ def test_softi2c_scan_returns_int():
     scl = Pin(5, Pin.OUT)
     sda = Pin(4, Pin.OUT)
     i2c = SoftI2C(scl, sda)
+    i2c._i2c.nack.update(range(1, 128))  # a bus with nothing on it
     count = i2c.scan()
     assert isinstance(count, int)
-    assert count == 0   # mock ping always returns 0
+    assert count == 0
 
 
 def test_softi2c_writeto():
@@ -126,5 +127,8 @@ def test_softi2c_ping():
     scl = Pin(5, Pin.OUT)
     sda = Pin(4, Pin.OUT)
     i2c = SoftI2C(scl, sda)
+    i2c._i2c.nack.add(0x48)
     result = i2c.ping(0x48)
-    assert result == 0   # mock always returns 0
+    assert result == 0   # the address is NACKed
+    i2c._i2c.nack.clear()
+    assert i2c.ping(0x48) == 1

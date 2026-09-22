@@ -388,9 +388,10 @@ def test_i2c_readfrom():
 
 def test_i2c_scan_returns_int():
     i2c = I2C()
+    i2c._i2c.nack.update(range(1, 128))  # a bus with nothing on it
     count = i2c.scan()
     assert isinstance(count, int)
-    assert count == 0  # mock always returns 0 from ping
+    assert count == 0
 
 
 def test_i2c_writeto_stop_false():
@@ -435,6 +436,89 @@ def test_i2c_mem_helpers_reject_addrsize():
         i2c.readfrom_mem_into(0x68, 0x00, bytearray(2), addrsize=16)
 
 
+def test_i2c_writeto_raises_eio_on_address_nack():
+    # MicroPython reports a failed transaction as OSError [Errno 5] EIO; the HAL
+    # status used to be dropped, so a NACKed write looked like a good one.
+    i2c = I2C()
+    i2c._i2c.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, 0x00)
+    assert str(e.value) == "[Errno 5] EIO"
+
+
+def test_i2c_writeto_raises_eio_on_data_nack():
+    i2c = I2C()
+    i2c._i2c.nack_data = True
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, 0x00)
+    assert str(e.value) == "[Errno 5] EIO"
+
+
+def test_i2c_writeto_buf_raises_eio_on_nack():
+    i2c = I2C()
+    i2c._i2c.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, bytearray(b"\x00\x01"))
+    assert str(e.value) == "[Errno 5] EIO"
+
+
+def test_i2c_writeto_stop_false_raises_eio_on_nack():
+    i2c = I2C()
+    i2c._i2c.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, 0x00, 0)
+    assert str(e.value) == "[Errno 5] EIO"
+
+
+def test_i2c_writeto_raises_eio_when_start_fails():
+    i2c = I2C()
+    i2c._i2c.fail_start = True
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, 0x00, 0)
+    assert str(e.value) == "[Errno 5] EIO"
+
+
+def test_i2c_readfrom_raises_eio_on_nack():
+    i2c = I2C()
+    i2c._i2c.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.readfrom(0x3C)
+    assert str(e.value) == "[Errno 5] EIO"
+
+
+def test_i2c_readfrom_into_raises_eio_on_nack():
+    i2c = I2C()
+    i2c._i2c.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.readfrom_into(0x3C, bytearray(2))
+    assert str(e.value) == "[Errno 5] EIO"
+    with pytest.raises(OSError):
+        i2c.readfrom_into(0x3C, bytearray(2), 0)
+
+
+def test_i2c_mem_helpers_raise_eio_on_nack():
+    i2c = I2C()
+    i2c._i2c.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.writeto_mem(0x3C, 0x00, bytearray(b"\x01"))
+    assert str(e.value) == "[Errno 5] EIO"
+    with pytest.raises(OSError):
+        i2c.readfrom_mem_into(0x3C, 0x00, bytearray(2))
+    with pytest.raises(OSError):
+        i2c.readfrom_mem(0x3C, 0x00, bytearray(2), 2)
+
+
+def test_i2c_ack_path_raises_nothing():
+    i2c = I2C()
+    i2c.writeto(0x68, 0x00)
+    i2c.writeto(0x68, bytearray(b"\x01\x02"))
+    i2c.writeto(0x68, 0x00, 0)
+    i2c.readfrom(0x68)
+    i2c.readfrom_into(0x68, bytearray(2))
+    i2c.writeto_mem(0x68, 0x00, bytearray(b"\x01"))
+    i2c.readfrom_mem_into(0x68, 0x00, bytearray(2))
+
+
 # ── SoftI2C (machine module) ────────────────────────────────────────────── #
 
 def test_softi2c_writeto_stop_false():
@@ -474,6 +558,41 @@ def test_softi2c_mem_helpers():
     buf = bytearray(2)
     i2c.readfrom_mem_into(0x48, 0x00, buf)
     i2c.readfrom_mem(0x48, 0x00, buf, 2)
+
+
+def test_softi2c_raises_eio_on_nack():
+    # Same OSError as the hardware bus: a NACK is an ACK bit of 1 here.
+    scl = Pin(5, Pin.OUT)
+    sda = Pin(4, Pin.OUT)
+    i2c = SoftI2C(scl, sda)
+    i2c._bus.nack.add(0x3C)
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, 0x00)
+    assert str(e.value) == "[Errno 5] EIO"
+    with pytest.raises(OSError):
+        i2c.writeto(0x3C, 0x00, 0)
+    with pytest.raises(OSError):
+        i2c.writeto(0x3C, bytearray(b"\x00"))
+    with pytest.raises(OSError):
+        i2c.readfrom(0x3C)
+    with pytest.raises(OSError):
+        i2c.readfrom_into(0x3C, bytearray(2))
+    with pytest.raises(OSError):
+        i2c.writeto_mem(0x3C, 0x00, bytearray(b"\x01"))
+    with pytest.raises(OSError):
+        i2c.readfrom_mem_into(0x3C, 0x00, bytearray(2))
+    with pytest.raises(OSError):
+        i2c.readfrom_mem(0x3C, 0x00, bytearray(2), 2)
+
+
+def test_softi2c_raises_eio_on_data_nack():
+    scl = Pin(5, Pin.OUT)
+    sda = Pin(4, Pin.OUT)
+    i2c = SoftI2C(scl, sda)
+    i2c._bus.nack_data = True
+    with pytest.raises(OSError) as e:
+        i2c.writeto(0x3C, 0x00)
+    assert str(e.value) == "[Errno 5] EIO"
 
 
 # ── Module-level constants ────────────────────────────────────────────────  #

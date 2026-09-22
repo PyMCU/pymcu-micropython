@@ -791,31 +791,55 @@ class I2C:
         # positional-only, and MicroPython code calls it that way in practice, which
         # also keeps a keyword call from ever reaching a name with more than one
         # @inline overload (PyMCU/PyMCU#447).
+        # A NACK raises OSError [Errno 5] EIO, the way the rp2 port reports it -- the
+        # status used to be ignored, so a dead bus looked exactly like a live one and
+        # a try/except OSError around the call never ran.
         if stop:
-            self._i2c.writebyte(addr, data)
+            if self._i2c.writebyte(addr, data) != 1:
+                raise OSError("[Errno 5] EIO")
         else:
-            self._i2c.start()
-            self._i2c.write(addr << 1)
-            self._i2c.write(data)
+            st: uint8 = self._i2c.start()
+            if st != _I2C.START and st != _I2C.RESTART:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
+            if self._i2c.write(addr << 1) != _I2C.SLA_ACK:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
+            if self._i2c.write(data) != _I2C.DATA_ACK:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
 
     @inline
     def writeto(self, addr: uint8, buf: bytearray, stop: uint8 = 1):
         # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
         if stop:
-            self._i2c.write_bytes(addr, buf, len(buf))
+            if self._i2c.write_bytes(addr, buf, len(buf)) != 1:
+                raise OSError("[Errno 5] EIO")
         else:
-            self._i2c.start()
-            self._i2c.write(addr << 1)
+            st: uint8 = self._i2c.start()
+            if st != _I2C.START and st != _I2C.RESTART:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
+            if self._i2c.write(addr << 1) != _I2C.SLA_ACK:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
             i: uint8 = 0
             n: uint8 = len(buf)
             while i < n:
-                self._i2c.write(buf[i])
+                if self._i2c.write(buf[i]) != _I2C.DATA_ACK:
+                    self._i2c.stop()
+                    raise OSError("[Errno 5] EIO")
                 i = i + 1
 
     @inline
     def readfrom(self, addr: uint8) -> uint8:
-        self._i2c.start()
-        self._i2c.write((addr << 1) | 1)
+        st: uint8 = self._i2c.start()
+        if st != _I2C.START and st != _I2C.RESTART:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._i2c.write((addr << 1) | 1) != _I2C.SLA_R_ACK:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
         val: uint8 = self._i2c.read_nack()
         self._i2c.stop()
         return val
@@ -823,12 +847,19 @@ class I2C:
     @inline
     def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
         # Matches MicroPython: readfrom_into(addr, buf, stop=True, /) fills len(buf)
-        # bytes. Returns 1 on success, 0 on NACK (MicroPython returns None; PyMCU
-        # reports status). stop=False leaves the bus held for a following operation.
+        # bytes and raises OSError [Errno 5] EIO on a NACK. stop=False leaves the bus
+        # held for a following operation.
         if stop:
-            return self._i2c.read_n(addr, buf, len(buf))
-        self._i2c.start()
-        self._i2c.write((addr << 1) | 1)
+            if self._i2c.read_n(addr, buf, len(buf)) != 1:
+                raise OSError("[Errno 5] EIO")
+            return 1
+        st: uint8 = self._i2c.start()
+        if st != _I2C.START and st != _I2C.RESTART:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._i2c.write((addr << 1) | 1) != _I2C.SLA_R_ACK:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
         i: uint8 = 0
         n: uint8 = len(buf)
         while i < n:
@@ -884,14 +915,25 @@ class I2C:
         if addrsize != 8:
             raise CompileError("machine.I2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         if len(buf) == 1:
-            return self._i2c.writeto_mem(addr, memaddr, buf[0])
-        self._i2c.start()
-        self._i2c.write(addr << 1)
-        self._i2c.write(memaddr)
+            if self._i2c.writeto_mem(addr, memaddr, buf[0]) != 1:
+                raise OSError("[Errno 5] EIO")
+            return 1
+        st: uint8 = self._i2c.start()
+        if st != _I2C.START and st != _I2C.RESTART:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._i2c.write(addr << 1) != _I2C.SLA_ACK:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._i2c.write(memaddr) != _I2C.DATA_ACK:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
         i: uint8 = 0
         n: uint8 = len(buf)
         while i < n:
-            self._i2c.write(buf[i])
+            if self._i2c.write(buf[i]) != _I2C.DATA_ACK:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
             i = i + 1
         self._i2c.stop()
         return 1
@@ -901,14 +943,18 @@ class I2C:
         # MicroPython: readfrom_mem_into(addr, memaddr, buf, /, *, addrsize=8).
         if addrsize != 8:
             raise CompileError("machine.I2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
-        return self._i2c.readfrom_mem(addr, memaddr, buf, len(buf))
+        if self._i2c.readfrom_mem(addr, memaddr, buf, len(buf)) != 1:
+            raise OSError("[Errno 5] EIO")
+        return 1
 
     @inline
     def readfrom_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, n: uint8) -> uint8:
         # PyMCU extension: caller-owned buffer where MicroPython's real
         # readfrom_mem(addr, memaddr, nbytes) returns a fresh bytes object (no heap on
         # this chip). Use readfrom_mem_into(addr, memaddr, buf) for the faithful form.
-        return self._i2c.readfrom_mem(addr, memaddr, buf, n)
+        if self._i2c.readfrom_mem(addr, memaddr, buf, n) != 1:
+            raise OSError("[Errno 5] EIO")
+        return 1
 
 
 # ---------------------------------------------------------------------------
@@ -957,38 +1003,59 @@ class SoftI2C:
     @inline
     def writeto(self, addr: uint8, data: uint8, stop: uint8 = 1):
         # See machine.I2C.writeto: stop is a plain (not keyword-only) parameter on
-        # purpose (PyMCU/PyMCU#447).
+        # purpose (PyMCU/PyMCU#447). A NACK raises OSError [Errno 5] EIO like the
+        # hardware bus does; the bit-banged HAL reports it as a nonzero ACK bit.
         if stop:
-            self._bus.write_to(addr, data)
+            if self._bus.write_to(addr, data) != 1:
+                raise OSError("[Errno 5] EIO")
         else:
             self._bus.start()
-            self._bus.write(addr << 1)
-            self._bus.write(data)
+            if self._bus.write(addr << 1) != 0:
+                self._bus.stop()
+                raise OSError("[Errno 5] EIO")
+            if self._bus.write(data) != 0:
+                self._bus.stop()
+                raise OSError("[Errno 5] EIO")
 
     @inline
     def writeto(self, addr: uint8, buf: bytearray, stop: uint8 = 1):
         # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
         if stop:
-            self._bus.write_bytes(addr, buf, len(buf))
+            if self._bus.write_bytes(addr, buf, len(buf)) != 1:
+                raise OSError("[Errno 5] EIO")
         else:
             self._bus.start()
-            self._bus.write(addr << 1)
+            if self._bus.write(addr << 1) != 0:
+                self._bus.stop()
+                raise OSError("[Errno 5] EIO")
             i: uint8 = 0
             n: uint8 = len(buf)
             while i < n:
-                self._bus.write(buf[i])
+                if self._bus.write(buf[i]) != 0:
+                    self._bus.stop()
+                    raise OSError("[Errno 5] EIO")
                 i = i + 1
 
     @inline
     def readfrom(self, addr: uint8) -> uint8:
-        return self._bus.read_from(addr)
+        # Rolled by hand because read_from() folds the byte and the address-NACK
+        # into one return value, and a real 0x00 read is not a failure.
+        self._bus.start()
+        if self._bus.write((addr << 1) | 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
+        val: uint8 = self._bus.read(0)
+        self._bus.stop()
+        return val
 
     @inline
     def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
         # Matches MicroPython: readfrom_into(addr, buf, stop=True, /) fills len(buf)
-        # bytes.
+        # bytes and raises OSError [Errno 5] EIO on a NACK.
         self._bus.start()
-        self._bus.write((addr << 1) | 1)
+        if self._bus.write((addr << 1) | 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
         i: uint8 = 0
         n: uint8 = len(buf)
         while i < n:
@@ -1040,12 +1107,18 @@ class SoftI2C:
         if addrsize != 8:
             raise CompileError("machine.SoftI2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         self._bus.start()
-        self._bus.write(addr << 1)
-        self._bus.write(memaddr)
+        if self._bus.write(addr << 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._bus.write(memaddr) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
         i: uint8 = 0
         n: uint8 = len(buf)
         while i < n:
-            self._bus.write(buf[i])
+            if self._bus.write(buf[i]) != 0:
+                self._bus.stop()
+                raise OSError("[Errno 5] EIO")
             i = i + 1
         self._bus.stop()
         return 1
@@ -1056,10 +1129,16 @@ class SoftI2C:
         if addrsize != 8:
             raise CompileError("machine.SoftI2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         self._bus.start()
-        self._bus.write(addr << 1)
-        self._bus.write(memaddr)
+        if self._bus.write(addr << 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._bus.write(memaddr) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
         self._bus.start()
-        self._bus.write((addr << 1) | 1)
+        if self._bus.write((addr << 1) | 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
         i: uint8 = 0
         n: uint8 = len(buf)
         while i < n:
@@ -1078,10 +1157,16 @@ class SoftI2C:
         # heap on this chip). Use readfrom_mem_into(addr, memaddr, buf) for the
         # faithful form (count is len(buf) there).
         self._bus.start()
-        self._bus.write(addr << 1)
-        self._bus.write(memaddr)
+        if self._bus.write(addr << 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._bus.write(memaddr) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
         self._bus.start()
-        self._bus.write((addr << 1) | 1)
+        if self._bus.write((addr << 1) | 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
         i: uint8 = 0
         while i < n:
             if i == n - 1:
