@@ -1,5 +1,16 @@
 # Changelog — pymcu-micropython
 
+## Unreleased
+
+### Fixed
+
+- **machine**: `I2C` and `SoftI2C` `writeto`, `readfrom`, `readfrom_into`,
+  `writeto_mem`, `readfrom_mem` and `readfrom_mem_into` ignored the bus's return status,
+  so a NACKed transaction looked like a successful one. They now raise
+  `OSError("[Errno 5] EIO")`, the message the MicroPython ports print, after stopping
+  the bus. The mock buses grow `nack` / `fail_start` knobs so a test can drive each
+  failure.
+
 ## 0.1.0a2 — 2026-08-18
 
 Driven by compiling the official MicroPython quickref examples verbatim
