@@ -1,6 +1,5 @@
 # MicroPython-compat umqtt.simple.MQTTClient over the CYW43439 WiFi stack. Publishes a
 # numeric reading to a fixed topic ("dht") using the HAL's built-in TCP+MQTT publish.
-from pymcu.hal.wifi import CYW43
 from pymcu.types import uint32, inline, const
 
 

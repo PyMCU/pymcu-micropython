@@ -1,8 +1,8 @@
 # MicroPython-compat network.WLAN over the CYW43439 (Pico W and Pico 2 W). Universal source;
 # the radio lives in the HAL (pymcu.hal.wifi -> hal/rp/cyw43), one driver for both.
-from pymcu.hal.wifi import CYW43
+from pymcu.hal.wifi import CYW43 as _CYW43
 from pymcu.types import uint8, inline, const
-from pymcu.exceptions import CompileError
+from pymcu.exceptions import CompileError as _CompileError
 
 STA_IF = 0
 AP_IF = 1
@@ -11,7 +11,7 @@ AP_IF = 1
 class WLAN:
     @inline
     def __init__(self, interface: uint8 = 0):
-        self._hw = CYW43()
+        self._hw = _CYW43()
 
     @inline
     def active(self, on: uint8 = 1):
@@ -23,7 +23,7 @@ class WLAN:
         # The radio only knows how to join an open network (join_open sends no
         # PSK), so accepting a key would silently drop it. Same guard as the HAL.
         if key != "":
-            raise CompileError("WiFi: WPA is not supported yet; connect() can only join open networks -- leave key empty")
+            raise _CompileError("WiFi: WPA is not supported yet; connect() can only join open networks -- leave key empty")
         self._hw.join_open(ssid)
         self._hw.settle()
 
