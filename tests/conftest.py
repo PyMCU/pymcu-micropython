@@ -43,7 +43,7 @@ def _install_hal_mocks() -> None:
             return x
 
         def init(self, mode=None, pull=None, **kw):
-            if mode is not None and mode != 255:
+            if mode is not None and mode != -1:
                 self._mode = mode
 
         def mode(self, m=None):

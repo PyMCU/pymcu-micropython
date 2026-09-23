@@ -92,52 +92,79 @@ WLAN_WAKE = 2
 # Pin
 # ---------------------------------------------------------------------------
 
+# The mode values below are the real MicroPython rp2 ones -- IN=0, OUT=1 --
+# not this HAL's own convention. Every PyMCU GPIO HAL (AVR, PIC, RISC-V and
+# the RP2040's own) numbers the directions the Arduino way, IN=1/OUT=0, so the
+# mode is translated at the HAL call with a ternary, which folds on a const
+# argument (an @inline helper's return would not stay a compile-time constant,
+# and the const[...] parameters on the HAL side require one). Answering the
+# HAL's numbers here was a both-value-diff against the real firmware: `mode ==
+# Pin.IN` code ported from a board would have compared against 1 and silently
+# matched OUT.
+
+
 class Pin:
-    # Mode constants (MicroPython style)
-    IN      = 1
-    OUT     = 0
+    # Mode constants -- the rp2 port's own values (measured on real firmware).
+    IN         = 0
+    OUT        = 1
+    OPEN_DRAIN = 2
 
     # Pull constants
     PULL_UP   = 1
     PULL_DOWN = 2
 
-    # Trigger constants (for irq())
-    IRQ_FALLING = 1
-    IRQ_RISING  = 2
+    # Trigger constants (for irq()) -- rp2 edge-trigger bitmask values.
+    IRQ_FALLING = 4
+    IRQ_RISING  = 8
 
     @inline
-    def __init__(self, pin_id: const[uint8], mode: const[uint8] = 1):
+    def __init__(self, pin_id: const[uint8], mode: const[uint8] = -1):
+        # upstream default mode=-1 is "leave unchanged"; a fresh pin's
+        # unchanged state is an input, which is HAL IN=1. The const keeps
+        # its -1 spelling, so the ternary matches it by name.
+        if mode < -1 or mode > Pin.OPEN_DRAIN:
+            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if __CHIP__.arch == "arm":
             # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
-            self._pin = _Pin(pin_id, mode)
+            self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
         elif __CHIP__.arch == "avr":
             # AVR: board number -> port string, per chip (see the HAL).
             self._name = _board_pin_name(pin_id)
-            self._pin = _Pin(self._name, mode)
+            self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
         else:
             raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
+        if mode < -1 or mode > Pin.OPEN_DRAIN:
+            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if __CHIP__.arch == "arm":
-            self._pin = _Pin(pin_id, mode, pull)
+            self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
         elif __CHIP__.arch == "avr":
             self._name = _board_pin_name(pin_id)
-            self._pin = _Pin(self._name, mode, pull)
+            self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
         else:
             raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
-    def __init__(self, pin_id: const[str], mode: const[uint8] = 1):
-        # Direct port-string form: Pin("PB5", Pin.OUT).
+    def __init__(self, pin_id: const[str], mode: const[uint8] = -1):
+        # Direct port-string form: Pin("PB5", Pin.OUT). mode stays const[uint8]
+        # here: the overload dispatcher only separates the str overloads from
+        # the int ones when mode is typed uint8 -- const or const[int16] both
+        # made Pin("PB5", Pin.OUT) dispatch into the integer arm and feed the
+        # port name to _board_pin_name.
+        if mode < -1 or mode > Pin.OPEN_DRAIN:
+            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         self._name = pin_id
-        self._pin = _Pin(self._name, mode)
+        self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
 
     @inline
     def __init__(self, pin_id: const[str], mode: const[uint8], pull: const[uint8]):
         # String + pull: Pin("PD2", Pin.IN, Pin.PULL_UP).
+        if mode < -1 or mode > Pin.OPEN_DRAIN:
+            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         self._name = pin_id
-        self._pin = _Pin(self._name, mode, pull)
+        self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
 
     @inline
     def high(self):
@@ -189,28 +216,32 @@ class Pin:
         # a literal -1/0 sentinel -- never a variable reassigned from one of those two --
         # because `const` parameters stay compile-time constants only along a straight
         # binding, not through a branch that reassigns a fresh local from them.
+        # mode goes through the same upstream->HAL value translation the
+        # constructor performs; -1 ("leave unchanged") passes through.
+        if mode < -1 or mode > Pin.OPEN_DRAIN:
+            raise CompileError("machine.Pin.init: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if value is None:
             if drive is None:
                 if alt is None:
-                    self._pin.init(mode, pull)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull)
                 else:
-                    self._pin.init(mode, pull, -1, 0, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, -1, 0, alt)
             else:
                 if alt is None:
-                    self._pin.init(mode, pull, -1, drive)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, -1, drive)
                 else:
-                    self._pin.init(mode, pull, -1, drive, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, -1, drive, alt)
         else:
             if drive is None:
                 if alt is None:
-                    self._pin.init(mode, pull, value)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value)
                 else:
-                    self._pin.init(mode, pull, value, 0, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value, 0, alt)
             else:
                 if alt is None:
-                    self._pin.init(mode, pull, value, drive)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value, drive)
                 else:
-                    self._pin.init(mode, pull, value, drive, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value, drive, alt)
 
     @inline
     def __call__(self) -> uint8:
@@ -228,16 +259,29 @@ class Pin:
         # The compiler synthesizes a parameterless ISR wrapper that inlines
         # handler with self's ZCA constants, so pin.value() etc. resolve
         # at compile time with zero runtime overhead.
+        # Upstream's trigger is the rp2 GPIO bitmask -- IRQ_FALLING=4,
+        # IRQ_RISING=8, both edges = 12, low level = 1, high level = 2 --
+        # while the AVR HAL numbers the triggers its ISC bits can raise
+        # 1..4. Translate once here; a trigger the chip cannot raise refuses.
+        if trigger == 2:
+            raise CompileError("machine.Pin.irq: IRQ_HIGH_LEVEL (2) is not a trigger this chip can raise.")
+        if trigger != Pin.IRQ_FALLING and trigger != Pin.IRQ_RISING and trigger != 12 and trigger != 1:
+            raise CompileError("machine.Pin.irq: trigger must be Pin.IRQ_FALLING, Pin.IRQ_RISING, both edges (their |), or low level (1).")
         _set_irq_zca_arg(handler, self)
-        self._pin.irq(trigger, handler)
+        self._pin.irq(1 if trigger == Pin.IRQ_FALLING else (2 if trigger == Pin.IRQ_RISING else (3 if trigger == 12 else 4)), handler)
 
     @inline
     def mode(self) -> uint8:
-        return self._pin.mode()
+        # The HAL getter answers its own numbers (0=OUT, 1=IN, 3=IN_PULLUP);
+        # callers here hold upstream values (IN=0, OUT=1). IN_PULLUP has no
+        # upstream mode -- it reads back as IN, which the pin still is.
+        return 0 if self._pin.mode() == 1 or self._pin.mode() == 3 else (1 if self._pin.mode() == 0 else self._pin.mode())
 
     @inline
     def mode(self, m: uint8) -> uint8:
-        self._pin.mode(m)
+        # Same upstream->HAL translation the constructor performs, so
+        # pin.mode(Pin.IN) keeps meaning IN after the constants moved.
+        self._pin.mode(1 if m == Pin.IN or m == -1 else (0 if m == Pin.OUT else m))
         return m
 
 

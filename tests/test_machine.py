@@ -36,8 +36,9 @@ def test_pin_number_out_of_range_is_refused():
 # ── Pin constants ─────────────────────────────────────────────────────────  #
 
 def test_pin_mode_constants():
-    assert Pin.IN  == 1
-    assert Pin.OUT == 0
+    assert Pin.IN         == 0
+    assert Pin.OUT        == 1
+    assert Pin.OPEN_DRAIN == 2
 
 
 def test_pin_pull_constants():
@@ -46,8 +47,8 @@ def test_pin_pull_constants():
 
 
 def test_pin_irq_constants():
-    assert Pin.IRQ_FALLING == 1
-    assert Pin.IRQ_RISING  == 2
+    assert Pin.IRQ_FALLING == 4
+    assert Pin.IRQ_RISING  == 8
 
 
 # ── Pin instantiation and methods ─────────────────────────────────────────  #
