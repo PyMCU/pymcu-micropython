@@ -306,14 +306,21 @@ quote = "this chip's GPIO pins are fixed-function with a fixed drive strength an
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
+symbol = "machine.Pin.mode"
+status = "documented"
+quote = "the stub carries them from ports that keep"
+reason = "The rp2 stub declares Pin.mode() but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
 symbol = "machine.Pin.irq"
 status = "tracked:#19"
-reason = "Pin.init()'s value= keyword or a pull() getter is missing; tracked by PyMCU/pymcu-micropython#19."
+reason = "The signature now carries upstream's priority/wake/hard keywords; the remaining gap is the positional-only `/` and handler=None, both needing syntax the compiler lacks; tracked by PyMCU/pymcu-micropython#19."
 
 [[deviation]]
 symbol = "machine.Pin.pull"
-status = "tracked:#19"
-reason = "Pin.init()'s value= keyword or a pull() getter is missing; tracked by PyMCU/pymcu-micropython#19."
+status = "documented"
+quote = "the stub carries them from ports that keep"
+reason = "The rp2 stub declares Pin.pull() but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
 
 [[deviation]]
 symbol = "machine.RTC"
@@ -559,7 +566,7 @@ reason = "The rp2 stub declares the name but the rp2 firmware does not export it
 [[deviation]]
 symbol = "machine.time_pulse_us"
 status = "tracked:#12"
-reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
+reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`), and upstream's timeout_us=1_000_000 default does not fit the HAL pulse counter's uint16 ceiling (~65 ms at 16 MHz); tracked by PyMCU/pymcu-micropython#12."
 
 # -- micropython -----------------------------------------------------------
 

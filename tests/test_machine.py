@@ -112,15 +112,13 @@ def test_pin_irq_rising_with_handler():
     pin.irq(lambda: None, Pin.IRQ_RISING)
 
 
-def test_pin_mode_read():
+def test_pin_mode_and_pull_names_are_absent():
+    # Pin.mode() / Pin.pull() / Pin.drive() are declared by the shared stub but
+    # the rp2 port never defines them -- re-initialisation goes through
+    # Pin.init(mode=..., pull=...) there, so the names stay absent here.
     pin = Pin(13, Pin.OUT)
-    m = pin.mode()
-    assert m == Pin.OUT
-
-
-def test_pin_mode_write():
-    pin = Pin(2, Pin.IN)
-    pin.mode(Pin.OUT)
+    for name in ("mode", "pull", "drive"):
+        assert not hasattr(pin, name), name
 
 
 def test_pin_init_mode():
@@ -155,10 +153,16 @@ def test_pin_call_write_255_is_not_a_read():
     assert v == 255
 
 
-def test_pin_mode_write_255_is_not_a_read():
+def test_pin_irq_upstream_kwargs():
+    # Upstream signature: irq(handler, trigger=FALLING|RISING, *, priority=1,
+    # wake=None, hard=False). The keywords are accepted at their defaults;
+    # a non-default priority or a wake source is refused by name.
     pin = Pin(2, Pin.IN)
-    m = pin.mode(255)
-    assert m == 255
+    pin.irq(lambda: None, Pin.IRQ_FALLING, priority=1, hard=True)
+    with pytest.raises(CompileError):
+        pin.irq(lambda: None, Pin.IRQ_FALLING, priority=2)
+    with pytest.raises(CompileError):
+        pin.irq(lambda: None, Pin.IRQ_FALLING, wake=70)
 
 
 # ── time_pulse_us ─────────────────────────────────────────────────────────  #

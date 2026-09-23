@@ -25,14 +25,17 @@ helpers are not implemented.
 WiPy specific; this chip's ADC has one fixed input range and a fixed 10-bit resolution, so none
 of them apply.
 
-## machine constants the stub declares but the firmware does not
+## machine constants and methods the stub declares but the firmware does not
 
 `machine.IDLE`, `SLEEP`, `DEEPSLEEP`, `HARD_RESET`, `SOFT_RESET`, `DEEPSLEEP_RESET`,
 `PIN_WAKE`, `RTC_WAKE`, `WLAN_WAKE` and `machine.SPI.CONTROLLER` appear in the rp2
 stub but not in the rp2 firmware's `machine` module, measured on MicroPython 1.21
 on real RP2040 silicon: they are esp32-port names the stub carries over. This
 layer matches the firmware, not the stub, so the only reset-cause constants are
-`PWRON_RESET` (1) and `WDT_RESET` (3).
+`PWRON_RESET` (1) and `WDT_RESET` (3). `machine.Pin.mode`, `Pin.pull` and
+`Pin.drive` are the same story: the stub carries them from ports that keep
+separate mode/pull/drive accessors, while the rp2 firmware re-initialises a pin
+through `Pin.init(mode=..., pull=..., drive=...)` and defines none of them.
 
 ## machine.Pin alternate functions and drive strength
 

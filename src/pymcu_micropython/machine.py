@@ -244,7 +244,8 @@ class Pin:
         return self.value(x)
 
     @inline
-    def irq(self, handler: Callable = 0, trigger: uint8 = IRQ_FALLING):
+    def irq(self, handler: Callable = 0, trigger: uint8 = 12, *,
+            priority: const[uint8] = 1, wake: const = None, hard: const = False):
         # Standard MicroPython API: handler(pin) receives this Pin instance.
         # The compiler synthesizes a parameterless ISR wrapper that inlines
         # handler with self's ZCA constants, so pin.value() etc. resolve
@@ -253,26 +254,20 @@ class Pin:
         # IRQ_RISING=8, both edges = 12, low level = 1, high level = 2 --
         # while the AVR HAL numbers the triggers its ISC bits can raise
         # 1..4. Translate once here; a trigger the chip cannot raise refuses.
+        # priority/wake/hard: upstream's keywords exist but this chip has one
+        # interrupt level, no GPIO wake source and no soft-handler scheduler --
+        # every handler runs in interrupt context (upstream's hard=True), so
+        # only a non-default priority or wake= is refused.
+        if priority != 1:
+            raise CompileError("machine.Pin.irq: this chip has a single interrupt level; only priority=1 exists.")
+        if wake is not None:
+            raise CompileError("machine.Pin.irq: this chip has no GPIO wake source; wake= is RP2-sleep only.")
         if trigger == 2:
             raise CompileError("machine.Pin.irq: IRQ_HIGH_LEVEL (2) is not a trigger this chip can raise.")
         if trigger != Pin.IRQ_FALLING and trigger != Pin.IRQ_RISING and trigger != 12 and trigger != 1:
             raise CompileError("machine.Pin.irq: trigger must be Pin.IRQ_FALLING, Pin.IRQ_RISING, both edges (their |), or low level (1).")
         _set_irq_zca_arg(handler, self)
         self._pin.irq(1 if trigger == Pin.IRQ_FALLING else (2 if trigger == Pin.IRQ_RISING else (3 if trigger == 12 else 4)), handler)
-
-    @inline
-    def mode(self) -> uint8:
-        # The HAL getter answers its own numbers (0=OUT, 1=IN, 3=IN_PULLUP);
-        # callers here hold upstream values (IN=0, OUT=1). IN_PULLUP has no
-        # upstream mode -- it reads back as IN, which the pin still is.
-        return 0 if self._pin.mode() == 1 or self._pin.mode() == 3 else (1 if self._pin.mode() == 0 else self._pin.mode())
-
-    @inline
-    def mode(self, m: uint8) -> uint8:
-        # Same upstream->HAL translation the constructor performs, so
-        # pin.mode(Pin.IN) keeps meaning IN after the constants moved.
-        self._pin.mode(1 if m == Pin.IN or m == -1 else (0 if m == Pin.OUT else m))
-        return m
 
 
 # ---------------------------------------------------------------------------
