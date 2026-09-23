@@ -9,23 +9,23 @@
 #   sleep_us(1000)
 
 from pymcu.types import uint16, uint32, inline
-from pymcu.time import delay_ms, delay_us
+from pymcu.time import delay_ms as _delay_ms, delay_us as _delay_us
 
 
 @inline
 def sleep_ms(ms: uint16):
-    delay_ms(ms)
+    _delay_ms(ms)
 
 
 @inline
 def sleep_us(us: uint16):
-    delay_us(us)
+    _delay_us(us)
 
 
 @inline
 def sleep(seconds: uint16):
     # MicroPython sleep() takes a float; on MCUs we use integer seconds.
-    delay_ms(seconds * 1000)
+    _delay_ms(seconds * 1000)
 
 
 @inline
