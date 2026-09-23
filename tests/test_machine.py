@@ -398,15 +398,21 @@ def test_i2c_writeto():
 
 
 def test_i2c_readfrom():
+    # MicroPython's readfrom(addr, nbytes) returns heap bytes; the layer
+    # refuses it at compile time and names readfrom_into(addr, buf).
     i2c = I2C()
-    val = i2c.readfrom(0x68)
-    assert val == 0
+    with pytest.raises(CompileError, match="heap-allocated bytes"):
+        i2c.readfrom(0x68, 1)
 
 
 def test_i2c_scan_returns_int():
+    # scan() refuses: upstream returns a list, which needs a heap. The
+    # caller-owned-buffer form scan(buf, max_count) is the faithful shape.
     i2c = I2C()
     i2c._i2c.nack.update(range(1, 128))  # a bus with nothing on it
-    count = i2c.scan()
+    with pytest.raises(CompileError, match="heap-allocated list"):
+        i2c.scan()
+    count = i2c.scan(bytearray(8), 8)
     assert isinstance(count, int)
     assert count == 0
 
@@ -496,10 +502,12 @@ def test_i2c_writeto_raises_eio_when_start_fails():
 
 
 def test_i2c_readfrom_raises_eio_on_nack():
+    # The NACK path moved to readfrom_into -- readfrom(addr, nbytes) is the
+    # heap-bytes spelling and refuses before it touches the bus.
     i2c = I2C()
     i2c._i2c.nack.add(0x3C)
     with pytest.raises(OSError) as e:
-        i2c.readfrom(0x3C)
+        i2c.readfrom_into(0x3C, bytearray(1))
     assert str(e.value) == "[Errno 5] EIO"
 
 
@@ -530,7 +538,6 @@ def test_i2c_ack_path_raises_nothing():
     i2c.writeto(0x68, 0x00)
     i2c.writeto(0x68, bytearray(b"\x01\x02"))
     i2c.writeto(0x68, 0x00, 0)
-    i2c.readfrom(0x68)
     i2c.readfrom_into(0x68, bytearray(2))
     i2c.writeto_mem(0x68, 0x00, bytearray(b"\x01"))
     i2c.readfrom_mem_into(0x68, 0x00, bytearray(2))
@@ -590,8 +597,6 @@ def test_softi2c_raises_eio_on_nack():
         i2c.writeto(0x3C, 0x00, 0)
     with pytest.raises(OSError):
         i2c.writeto(0x3C, bytearray(b"\x00"))
-    with pytest.raises(OSError):
-        i2c.readfrom(0x3C)
     with pytest.raises(OSError):
         i2c.readfrom_into(0x3C, bytearray(2))
     with pytest.raises(OSError):

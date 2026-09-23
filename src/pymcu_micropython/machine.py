@@ -751,16 +751,11 @@ class I2C:
 
     @inline
     def scan(self) -> uint8:
-        # Returns number of responding devices (not a list).
-        # Deviation: MicroPython scan() returns a list of addresses.
-        # Use scan(buf, max_count) to also capture the addresses.
-        count: uint8 = 0
-        addr: uint8 = 1
-        while addr < 128:
-            if self._i2c.ping(addr):
-                count += 1
-            addr += 1
-        return count
+        # MicroPython's scan() returns a heap-allocated list of addresses,
+        # which this target cannot build. Answering with a count would hand a
+        # ported `for addr in i2c.scan()` an integer instead -- refuse and name
+        # the caller-owned-buffer form.
+        raise _CompileError("machine.I2C.scan: upstream returns a heap-allocated list of addresses, which this target cannot build. Fill a caller-owned buffer instead: found = i2c.scan(buf, len(buf)).")
 
     @inline
     def scan(self, buf: bytearray, max_count: uint8) -> uint8:
@@ -778,18 +773,20 @@ class I2C:
         return count
 
     @inline
-    def writeto(self, addr: uint8, data: uint8, stop: uint8 = 1):
+    def writeto(self, addr: uint8, buf: uint8, stop: uint8 = 1):
         # MicroPython: writeto(addr, buf, stop=True, /) -- stop=False holds the bus with
         # a repeated START instead of releasing it, for a following readfrom*(). `stop`
         # is a plain (not keyword-only) parameter: the real stub marks it
         # positional-only, and MicroPython code calls it that way in practice, which
         # also keeps a keyword call from ever reaching a name with more than one
-        # @inline overload (PyMCU/PyMCU#447).
+        # @inline overload (PyMCU/PyMCU#447). The single-byte overload spells the
+        # parameter buf like upstream's; a uint8 is the honest one-byte shape on a
+        # heap-less target.
         # A NACK raises OSError [Errno 5] EIO, the way the rp2 port reports it -- the
         # status used to be ignored, so a dead bus looked exactly like a live one and
         # a try/except OSError around the call never ran.
         if stop:
-            if self._i2c.writebyte(addr, data) != 1:
+            if self._i2c.writebyte(addr, buf) != 1:
                 raise OSError("[Errno 5] EIO")
         else:
             st: uint8 = self._i2c.start()
@@ -799,7 +796,7 @@ class I2C:
             if self._i2c.write(addr << 1) != _I2C.SLA_ACK:
                 self._i2c.stop()
                 raise OSError("[Errno 5] EIO")
-            if self._i2c.write(data) != _I2C.DATA_ACK:
+            if self._i2c.write(buf) != _I2C.DATA_ACK:
                 self._i2c.stop()
                 raise OSError("[Errno 5] EIO")
 
@@ -826,17 +823,13 @@ class I2C:
                 i = i + 1
 
     @inline
-    def readfrom(self, addr: uint8) -> uint8:
-        st: uint8 = self._i2c.start()
-        if st != _I2C.START and st != _I2C.RESTART:
-            self._i2c.stop()
-            raise OSError("[Errno 5] EIO")
-        if self._i2c.write((addr << 1) | 1) != _I2C.SLA_R_ACK:
-            self._i2c.stop()
-            raise OSError("[Errno 5] EIO")
-        val: uint8 = self._i2c.read_nack()
-        self._i2c.stop()
-        return val
+    def readfrom(self, addr: uint8, nbytes: const[uint8], stop: uint8 = 1) -> uint8:
+        # MicroPython: readfrom(addr, nbytes, stop=True, /) returns a fresh
+        # bytes object of length nbytes, which needs a heap this target does
+        # not have. The old single-byte readfrom(addr) answered where upstream
+        # would already have failed on a missing nbytes -- refuse and name the
+        # caller-owned-buffer form.
+        raise _CompileError("machine.I2C.readfrom: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: n = i2c.readfrom_into(addr, buf).")
 
     @inline
     def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
@@ -968,16 +961,10 @@ class SoftI2C:
 
     @inline
     def scan(self) -> uint8:
-        # Returns number of responding devices (not a list).
-        # Deviation: MicroPython scan() returns a list of addresses.
-        # Use scan(buf, max_count) to also capture the addresses.
-        count: uint8 = 0
-        addr: uint8 = 1
-        while addr < 128:
-            if self._bus.ping(addr):
-                count = count + 1
-            addr = addr + 1
-        return count
+        # MicroPython's scan() returns a heap-allocated list of addresses,
+        # which this target cannot build -- same refusal as I2C.scan. Fill a
+        # caller-owned buffer instead: found = i2c.scan(buf, len(buf)).
+        raise _CompileError("machine.SoftI2C.scan: upstream returns a heap-allocated list of addresses, which this target cannot build. Fill a caller-owned buffer instead: found = i2c.scan(buf, len(buf)).")
 
     @inline
     def scan(self, buf: bytearray, max_count: uint8) -> uint8:
@@ -995,19 +982,19 @@ class SoftI2C:
         return count
 
     @inline
-    def writeto(self, addr: uint8, data: uint8, stop: uint8 = 1):
+    def writeto(self, addr: uint8, buf: uint8, stop: uint8 = 1):
         # See machine.I2C.writeto: stop is a plain (not keyword-only) parameter on
         # purpose (PyMCU/PyMCU#447). A NACK raises OSError [Errno 5] EIO like the
         # hardware bus does; the bit-banged HAL reports it as a nonzero ACK bit.
         if stop:
-            if self._bus.write_to(addr, data) != 1:
+            if self._bus.write_to(addr, buf) != 1:
                 raise OSError("[Errno 5] EIO")
         else:
             self._bus.start()
             if self._bus.write(addr << 1) != 0:
                 self._bus.stop()
                 raise OSError("[Errno 5] EIO")
-            if self._bus.write(data) != 0:
+            if self._bus.write(buf) != 0:
                 self._bus.stop()
                 raise OSError("[Errno 5] EIO")
 
@@ -1031,16 +1018,12 @@ class SoftI2C:
                 i = i + 1
 
     @inline
-    def readfrom(self, addr: uint8) -> uint8:
-        # Rolled by hand because read_from() folds the byte and the address-NACK
-        # into one return value, and a real 0x00 read is not a failure.
-        self._bus.start()
-        if self._bus.write((addr << 1) | 1) != 0:
-            self._bus.stop()
-            raise OSError("[Errno 5] EIO")
-        val: uint8 = self._bus.read(0)
-        self._bus.stop()
-        return val
+    def readfrom(self, addr: uint8, nbytes: const[uint8], stop: uint8 = 1) -> uint8:
+        # MicroPython: readfrom(addr, nbytes, stop=True, /) returns a fresh
+        # bytes object of length nbytes, which needs a heap this target does
+        # not have -- same refusal as I2C.readfrom. Fill a caller-owned buffer
+        # with readfrom_into() instead.
+        raise _CompileError("machine.SoftI2C.readfrom: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: n = i2c.readfrom_into(addr, buf).")
 
     @inline
     def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
