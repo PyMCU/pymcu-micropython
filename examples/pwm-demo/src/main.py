@@ -18,7 +18,7 @@
 # Soft PWM cycle:      ~0.8 s (100 -> 0 -> 100 in steps of 5, each 20 ms)
 
 from machine import Pin, PWM
-from pymcu.types import uint8
+from pymcu.types import uint8, uint16
 from utime import sleep_us
 
 # Hardware PWM: D6 = PD6 = OC0A (Timer0 Fast PWM, ~490 Hz at 16 MHz)
@@ -37,7 +37,7 @@ sw_up:   uint8 = 0     # start fading down so both are in opposite phase
 
 while True:
     # Update hardware PWM compare register (one write, Timer does the rest)
-    hw.duty(hw_duty)
+    hw.duty_u16(uint16(hw_duty) << 6)
 
     # Soft PWM: one period = 100 steps x 200 us = 20 ms (50 Hz)
     count: uint8 = 0

@@ -20,13 +20,12 @@ def main():
     uart = UART(0, 9600)
     adc  = ADC(Pin(14))   # Pin(14) = A0 = PC0
 
-    uart.println("ADC ready")
+    uart.write("ADC ready\n")
 
     while True:
-        val: uint16 = adc.read()    # 0-1023
-        uart.write_str("ADC=")
+        val: uint16 = adc.read_u16()    # 0-65472 (10-bit count << 6)
         # Print high byte as proxy for value (0-255 range)
         from pymcu.types import uint8
-        hi: uint8 = val >> 2        # scale 0-1023 to 0-255
-        uart.print_byte(hi)
+        hi: uint8 = val >> 8        # scale 0-65472 to 0-255
+        print("ADC=", hi)
         sleep_ms(200)

@@ -31,10 +31,10 @@ class LM35:
 
     @inline
     def read(self) -> uint16:
-        # Raw ADC count, 0-1023
-        return self._adc.read()
+        # Raw ADC count on the read_u16 scale, 0-65472
+        return self._adc.read_u16()
 
     @inline
     def temperature(self):
-        raw: uint16 = self._adc.read()
+        raw: uint16 = self._adc.read_u16() >> 6
         return raw * 0.4882813
