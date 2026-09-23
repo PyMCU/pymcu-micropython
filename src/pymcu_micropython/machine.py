@@ -54,22 +54,12 @@ from pymcu.hal.irq import (
 # Module-level constants (MicroPython machine module compatibility)
 # ---------------------------------------------------------------------------
 
-# Power / sleep mode identifiers
-IDLE      = 0
-SLEEP     = 1
-DEEPSLEEP = 2
-
-# Reset cause codes
-PWRON_RESET     = 0
-HARD_RESET      = 1
-WDT_RESET       = 2
-DEEPSLEEP_RESET = 3
-SOFT_RESET      = 4
-
-# Wake reason codes
-PIN_WAKE  = 0
-RTC_WAKE  = 1
-WLAN_WAKE = 2
+# Reset cause codes -- the rp2 port's own values (measured on real firmware).
+# Upstream rp2 exports exactly these two; HARD_RESET / SOFT_RESET /
+# DEEPSLEEP_RESET and the PIN_WAKE / RTC_WAKE / WLAN_WAKE wake codes are
+# esp32-port names and are deliberately absent here.
+PWRON_RESET = 1
+WDT_RESET   = 3
 
 
 # ---------------------------------------------------------------------------
@@ -1274,6 +1264,23 @@ def enable_irq(state: uint8 = 1):
 def reset():
     # Soft reset: jump to address 0 to re-run the startup stub.
     asm("jmp 0")
+
+
+@inline
+def reset_cause() -> uint8:
+    # MicroPython's reset_cause(). The rp2 port answers only PWRON_RESET (1) or
+    # WDT_RESET (3); AVR keeps the reason in the MCU status register, whose
+    # WDRF bit survives the reset -- so a watchdog restart (including
+    # soft_reset()'s) reports WDT_RESET and every other cause (power-on,
+    # external pin, brown-out) reports PWRON_RESET. MCUSR sits at data address
+    # 0x54 on every AVR the HAL covers.
+    if __CHIP__.arch == "avr":
+        mcusr: ptr[uint8] = ptr(0x54)
+        if mcusr.value & 0x08 != 0:
+            return WDT_RESET
+        return PWRON_RESET
+    else:
+        raise CompileError("machine.reset_cause: no reset-cause register is wired up for this architecture.")
 
 
 @inline

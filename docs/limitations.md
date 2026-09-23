@@ -25,13 +25,24 @@ helpers are not implemented.
 WiPy specific; this chip's ADC has one fixed input range and a fixed 10-bit resolution, so none
 of them apply.
 
+## machine reset and wake constants
+
+`machine.IDLE`, `SLEEP`, `DEEPSLEEP`, `HARD_RESET`, `SOFT_RESET`, `DEEPSLEEP_RESET`,
+`PIN_WAKE`, `RTC_WAKE` and `WLAN_WAKE` appear in the rp2 stub but not in the rp2
+firmware's `machine` module, measured on MicroPython 1.21 on real RP2040 silicon:
+they are esp32-port names the stub carries over. This layer matches the firmware,
+not the stub, so the only reset-cause constants are `PWRON_RESET` (1) and
+`WDT_RESET` (3).
+
 ## machine.Pin alternate functions and drive strength
 
 `machine.Pin`'s `ALT_*` function-select constants, `DRIVE_0`/`DRIVE_1`/`DRIVE_2`, `drive`,
-`ANALOG`, `OPEN_DRAIN`, `PULL_HOLD`, `IRQ_HIGH_LEVEL` and `IRQ_LOW_LEVEL` describe the RP2040's
+`ANALOG`, `PULL_HOLD`, `IRQ_HIGH_LEVEL` and `IRQ_LOW_LEVEL` describe the RP2040's
 per-pin function multiplexer, programmable drive-strength register and level-triggered IRQ
 modes; this chip's GPIO pins are fixed-function with a fixed drive strength and only
-edge-triggered external interrupts, so none of them apply.
+edge-triggered external interrupts, so none of them apply. `Pin.OPEN_DRAIN` keeps its
+upstream value (2) because the name exists upstream, but selecting the mode is refused on
+this chip -- the AVR GPIO block has no open-drain output configuration.
 
 ## Peripherals this chip does not have
 

@@ -497,9 +497,58 @@ quote = "there is no always-on backup memory domain and no software-triggered bo
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
-symbol = "machine.reset_cause"
-status = "tracked:#17"
-reason = "Not implemented though the MCUSR register that backs it exists in hardware; tracked by PyMCU/pymcu-micropython#17."
+symbol = "machine.IDLE"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.SLEEP"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.DEEPSLEEP"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.HARD_RESET"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.SOFT_RESET"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.DEEPSLEEP_RESET"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.PIN_WAKE"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.RTC_WAKE"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.WLAN_WAKE"
+status = "documented"
+quote = "they are esp32-port names the stub carries over. This layer matches the firmware,"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
 
 [[deviation]]
 symbol = "machine.time_pulse_us"

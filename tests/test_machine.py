@@ -4,9 +4,7 @@ from pymcu.exceptions import CompileError
 from pymcu_micropython.machine import (
     Pin, UART, ADC, PWM, SPI, SoftSPI, I2C, SoftI2C, time_pulse_us,
     Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
-    IDLE, SLEEP, DEEPSLEEP,
-    PWRON_RESET, HARD_RESET, WDT_RESET, DEEPSLEEP_RESET, SOFT_RESET,
-    PIN_WAKE, RTC_WAKE, WLAN_WAKE,
+    PWRON_RESET, WDT_RESET, reset_cause,
     Signal, mem8, mem16,
 )
 
@@ -598,24 +596,28 @@ def test_softi2c_raises_eio_on_data_nack():
 
 # ── Module-level constants ────────────────────────────────────────────────  #
 
-def test_sleep_mode_constants():
-    assert IDLE      == 0
-    assert SLEEP     == 1
-    assert DEEPSLEEP == 2
+def test_sleep_mode_names_are_absent():
+    # IDLE / SLEEP / DEEPSLEEP are not module members on upstream rp2 -- the
+    # port ships the idle()/lightsleep()/deepsleep() functions and no numeric
+    # sleep-mode constants at module level.
+    import pymcu_micropython.machine as machine_mod
+    for name in ("IDLE", "SLEEP", "DEEPSLEEP"):
+        assert not hasattr(machine_mod, name), name
 
 
 def test_reset_cause_constants():
-    assert PWRON_RESET     == 0
-    assert HARD_RESET      == 1
-    assert WDT_RESET       == 2
-    assert DEEPSLEEP_RESET == 3
-    assert SOFT_RESET      == 4
+    # Upstream rp2 values, measured on real firmware.
+    assert PWRON_RESET == 1
+    assert WDT_RESET   == 3
 
 
-def test_wake_reason_constants():
-    assert PIN_WAKE  == 0
-    assert RTC_WAKE  == 1
-    assert WLAN_WAKE == 2
+def test_esp32_reset_and_wake_names_are_absent():
+    # HARD_RESET / SOFT_RESET / DEEPSLEEP_RESET and the *_WAKE codes are
+    # esp32-port spellings; upstream rp2 exports none of them.
+    import pymcu_micropython.machine as machine_mod
+    for name in ("HARD_RESET", "SOFT_RESET", "DEEPSLEEP_RESET",
+                 "PIN_WAKE", "RTC_WAKE", "WLAN_WAKE"):
+        assert not hasattr(machine_mod, name), name
 
 
 # ── freq ─────────────────────────────────────────────────────────────────  #
