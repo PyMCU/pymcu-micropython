@@ -186,9 +186,11 @@ class Pin:
         return self._pin.value()
 
     @inline
-    def value(self, x: uint8) -> uint8:
+    def value(self, x: uint8):
+        # Upstream's pin.value(x) is machine_pin_call, which returns None --
+        # the write form answers nothing, so a ported `v = pin.value(1)`
+        # binds None on a board and must bind None here.
         self._pin.value(x)
-        return x
 
     @inline
     def init(self, mode: const[uint8] = -1, pull: const[uint8] = -1, *,
@@ -235,13 +237,14 @@ class Pin:
 
     @inline
     def __call__(self) -> uint8:
-        # Fast shortcut equivalent to Pin.value() (MicroPython standard).
+        # pin() reads -- upstream wires the Pin type's call slot to the same
+        # machine_pin_call as value(), so the spellings are interchangeable.
         return self.value()
 
     @inline
-    def __call__(self, x: uint8) -> uint8:
-        # Fast shortcut equivalent to Pin.value(x) (MicroPython standard).
-        return self.value(x)
+    def __call__(self, x: uint8):
+        # pin(x) writes and, like value(x) upstream, returns None.
+        self._pin.value(x)
 
     @inline
     def irq(self, handler: Callable = 0, trigger: uint8 = 12, *,
@@ -1419,13 +1422,13 @@ class Signal:
         return raw
 
     @inline
-    def value(self, x: uint8) -> uint8:
-        # Write: drives pin to produce the requested logical level.
+    def value(self, x: uint8):
+        # Write: drives pin to produce the requested logical level. Upstream's
+        # signal_call returns None on the write path, same as Pin.value(x).
         if self._inv:
             self._pin.value(1 - x)
         else:
             self._pin.value(x)
-        return x
 
 
 # ---------------------------------------------------------------------------
