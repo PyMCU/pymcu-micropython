@@ -201,28 +201,20 @@ def test_uart_read():
     assert b == 0
 
 
-def test_uart_write_str():
+def test_uart_extension_names_are_absent():
+    # irq / write_str / println / print_byte are not upstream rp2 UART members
+    # (measured on MicroPython 1.21): irq is an esp32-port stub declaration and
+    # the rest were PyMCU conveniences. println("x") is uart.write("x\n").
     uart = UART(0, 9600)
-    uart.write_str("hello")
+    for name in ("irq", "write_str", "println", "print_byte"):
+        assert not hasattr(uart, name), name
 
 
-def test_uart_println():
+def test_uart_write_string_form():
+    # write() takes a str (a buffer under MicroPython) -- the upstream
+    # equivalent of the removed println.
     uart = UART(0, 9600)
-    uart.println("test")
-
-
-def test_uart_irq():
-    uart = UART(0, 9600)
-    uart.irq(lambda u: None)
-
-
-def test_uart_irq_trigger_and_hard_are_accepted():
-    # trigger=/hard= are accepted for signature shape (MicroPython declares
-    # them positional-only, PyMCU/pymcu-micropython#12) and ignored: this
-    # chip's USART has one real interrupt source and every ISR here is
-    # already a true hardware interrupt.
-    uart = UART(0, 9600)
-    uart.irq(lambda u: None, 1, 1)
+    uart.write("test\n")
 
 
 # ── ADC ───────────────────────────────────────────────────────────────────  #
@@ -239,7 +231,9 @@ def test_adc_from_adc_preserves_the_underlying_channel():
 
 def test_adc_has_read_methods():
     adc = ADC(0)
-    assert callable(adc.read)
+    # Upstream rp2 exposes read_u16() only; read() is an esp32-port name the
+    # stub carries over.
+    assert not hasattr(adc, "read")
     assert callable(adc.read_u16)
 
 
@@ -261,11 +255,11 @@ def test_pwm_duty_u16():
     pwm.duty_u16(32768)
 
 
-def test_pwm_duty_is_the_legacy_1023_scale():
+def test_pwm_duty_name_is_absent():
+    # PWM.duty() is the esp32 legacy 0..1023 spelling; upstream rp2 exposes
+    # duty_u16()/duty_ns() only (measured on MicroPython 1.21).
     pwm = PWM(Pin(6, Pin.OUT))
-    pwm.duty(512)
-    assert pwm.duty() == 512
-    assert pwm.duty_u16() == 32768
+    assert not hasattr(pwm, "duty")
 
 
 def test_pwm_duty_ns_roundtrip():
@@ -698,9 +692,13 @@ def test_timer_mode_constants():
     assert Timer.PERIODIC == 1
 
 
-def test_timer_irq_constants():
-    assert Timer.IRQ_OVF   == 1
-    assert Timer.IRQ_COMPA == 2
+def test_timer_irq_names_are_absent():
+    # Timer.irq()/start()/IRQ_OVF/IRQ_COMPA are PyMCU HAL spellings; upstream
+    # rp2 Timer attaches its callback through init(callback=...) and defines
+    # none of them.
+    t = Timer(0)
+    for name in ("irq", "start", "IRQ_OVF", "IRQ_COMPA"):
+        assert not hasattr(t, name) and not hasattr(Timer, name), name
 
 
 # ── Timer instantiation and methods ──────────────────────────────────────  #
@@ -715,11 +713,6 @@ def test_timer_with_prescaler():
     assert t is not None
 
 
-def test_timer_start():
-    t = Timer(0)
-    t.start()  # must not raise
-
-
 def test_timer_deinit():
     t = Timer(0)
     t.deinit()  # must not raise
@@ -728,17 +721,6 @@ def test_timer_deinit():
 def test_timer_init():
     t = Timer(0)
     t.init()  # stop + restart; must not raise
-
-
-def test_timer_irq_registration():
-    t = Timer(0)
-    handler = lambda: None
-    t.irq(handler)  # must not raise
-
-
-def test_timer_irq_with_trigger():
-    t = Timer(0)
-    t.irq(lambda: None, Timer.IRQ_COMPA)
 
 
 # ── Timer.init(period, mode, callback) ───────────────────────────────────  #

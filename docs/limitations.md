@@ -33,10 +33,12 @@ stub but not in the rp2 firmware's `machine` module, measured on MicroPython 1.2
 on real RP2040 silicon: they are esp32-port names the stub carries over. This
 layer matches the firmware, not the stub, so the only reset-cause constants are
 `PWRON_RESET` (1) and `WDT_RESET` (3). `machine.Pin.mode`, `Pin.pull`,
-`Pin.drive`, `machine.I2C.deinit` and `machine.SoftI2C.deinit` are the same
+`Pin.drive`, `machine.I2C.deinit`, `machine.SoftI2C.deinit` and
+`machine.ADC.read` are the same
 story: the stub carries them from ports that keep separate mode/pull/drive
 accessors or a bus teardown method, while the rp2 firmware re-initialises a pin
-through `Pin.init(mode=..., pull=..., drive=...)` and defines none of them.
+through `Pin.init(mode=..., pull=..., drive=...)`, defines none of them, and
+reads its ADC only through `ADC.read_u16()`.
 
 ## machine.Pin alternate functions and drive strength
 

@@ -130,6 +130,12 @@ quote = "the stub carries them from ports that keep"
 reason = "The rp2 stub declares SoftI2C.deinit() but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
 
 [[deviation]]
+symbol = "machine.ADC.read"
+status = "documented"
+quote = "the stub carries them from ports that keep"
+reason = "The rp2 stub declares ADC.read() but the rp2 firmware reads only through ADC.read_u16(); measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
 symbol = "machine.I2C.init"
 status = "tracked:#15"
 reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."

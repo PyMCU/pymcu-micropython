@@ -122,13 +122,10 @@ class TestBoardToADC:
         adc = ADC(arduino_uno.A0)
         assert adc is not None
 
-    def test_uno_a0_read_raises_in_cpython(self):
-        # ADC.read() accesses hardware registers (ptr) that only work in
-        # compiled code. In CPython the bit-check raises RuntimeError.
-        import pytest
+    def test_uno_a0_read_is_absent(self):
+        # Upstream rp2 exposes only read_u16(); read() is an esp32-port name.
         adc = ADC(arduino_uno.A0)
-        with pytest.raises(RuntimeError, match="compiled"):
-            adc.read()
+        assert not hasattr(adc, "read")
 
     def test_uno_a0_read_u16_raises_in_cpython(self):
         import pytest
@@ -163,7 +160,7 @@ class TestBoardToPWM:
 
     def test_nano_d9_pwm(self):
         pwm = PWM(Pin(arduino_nano.D9))
-        pwm.duty(128)
+        pwm.duty_u16(8192)
 
     def test_mega_d6_pwm(self):
         pwm = PWM(Pin(arduino_mega.D6))
@@ -195,12 +192,16 @@ class TestBoardToUART:
         assert b == 0
 
     def test_uart_write_str(self):
+        # write_str() is absent on upstream rp2; write() takes str directly.
         uart = UART(0)
-        uart.write_str("hello")
+        assert not hasattr(uart, "write_str")
+        uart.write("hello")
 
     def test_uart_println(self):
+        # println() is absent on upstream rp2; write("x\n") is the equivalent.
         uart = UART(0)
-        uart.println("test")
+        assert not hasattr(uart, "println")
+        uart.write("test\n")
 
 
 # ── board → machine.I2C ───────────────────────────────────────────────────── #
@@ -325,11 +326,12 @@ class TestTypicalWorkflows:
         import pytest
         adc = ADC(arduino_uno.A0)
         pwm = PWM(Pin(arduino_uno.D6))
-        # Verify ADC.read() raises the expected CPython error
+        # ADC.read_u16() accesses hardware registers (ptr) that only work in
+        # compiled code; read() is absent on upstream rp2.
+        assert not hasattr(adc, "read")
         with pytest.raises(RuntimeError):
-            _ = adc.read()
-        # PWM duty control works fine
-        pwm.duty(128)
+            _ = adc.read_u16()
+        pwm.duty_u16(8192)
         pwm.deinit()
 
     def test_uart_echo_pattern(self):

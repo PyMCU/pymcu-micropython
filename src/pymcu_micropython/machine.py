@@ -21,7 +21,7 @@
 
 from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr, Callable
 from pymcu.chips import __CHIP__, __FREQ__
-from pymcu.exceptions import CompileError
+from pymcu.exceptions import CompileError as _CompileError
 from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.softi2c import SoftI2C as _SoftI2C
 from pymcu.hal.softspi import SoftSPI as _SoftSPI
@@ -113,7 +113,7 @@ class Pin:
         # unchanged state is an input, which is HAL IN=1. The const keeps
         # its -1 spelling, so the ternary matches it by name.
         if mode < -1 or mode > Pin.OPEN_DRAIN:
-            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
+            raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if __CHIP__.arch == "arm":
             # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
             self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
@@ -122,19 +122,19 @@ class Pin:
             self._name = _board_pin_name(pin_id)
             self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
         else:
-            raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
+            raise _CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
     def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
         if mode < -1 or mode > Pin.OPEN_DRAIN:
-            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
+            raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if __CHIP__.arch == "arm":
             self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
         elif __CHIP__.arch == "avr":
             self._name = _board_pin_name(pin_id)
             self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
         else:
-            raise CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
+            raise _CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
     def __init__(self, pin_id: const[str], mode: const[uint8] = -1):
@@ -144,7 +144,7 @@ class Pin:
         # made Pin("PB5", Pin.OUT) dispatch into the integer arm and feed the
         # port name to _board_pin_name.
         if mode < -1 or mode > Pin.OPEN_DRAIN:
-            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
+            raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         self._name = pin_id
         self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
 
@@ -152,7 +152,7 @@ class Pin:
     def __init__(self, pin_id: const[str], mode: const[uint8], pull: const[uint8]):
         # String + pull: Pin("PD2", Pin.IN, Pin.PULL_UP).
         if mode < -1 or mode > Pin.OPEN_DRAIN:
-            raise CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
+            raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         self._name = pin_id
         self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
 
@@ -209,7 +209,7 @@ class Pin:
         # mode goes through the same upstream->HAL value translation the
         # constructor performs; -1 ("leave unchanged") passes through.
         if mode < -1 or mode > Pin.OPEN_DRAIN:
-            raise CompileError("machine.Pin.init: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
+            raise _CompileError("machine.Pin.init: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if value is None:
             if drive is None:
                 if alt is None:
@@ -259,13 +259,13 @@ class Pin:
         # every handler runs in interrupt context (upstream's hard=True), so
         # only a non-default priority or wake= is refused.
         if priority != 1:
-            raise CompileError("machine.Pin.irq: this chip has a single interrupt level; only priority=1 exists.")
+            raise _CompileError("machine.Pin.irq: this chip has a single interrupt level; only priority=1 exists.")
         if wake is not None:
-            raise CompileError("machine.Pin.irq: this chip has no GPIO wake source; wake= is RP2-sleep only.")
+            raise _CompileError("machine.Pin.irq: this chip has no GPIO wake source; wake= is RP2-sleep only.")
         if trigger == 2:
-            raise CompileError("machine.Pin.irq: IRQ_HIGH_LEVEL (2) is not a trigger this chip can raise.")
+            raise _CompileError("machine.Pin.irq: IRQ_HIGH_LEVEL (2) is not a trigger this chip can raise.")
         if trigger != Pin.IRQ_FALLING and trigger != Pin.IRQ_RISING and trigger != 12 and trigger != 1:
-            raise CompileError("machine.Pin.irq: trigger must be Pin.IRQ_FALLING, Pin.IRQ_RISING, both edges (their |), or low level (1).")
+            raise _CompileError("machine.Pin.irq: trigger must be Pin.IRQ_FALLING, Pin.IRQ_RISING, both edges (their |), or low level (1).")
         _set_irq_zca_arg(handler, self)
         self._pin.irq(1 if trigger == Pin.IRQ_FALLING else (2 if trigger == Pin.IRQ_RISING else (3 if trigger == 12 else 4)), handler)
 
@@ -296,7 +296,7 @@ class UART:
         # This chip has one USART. Silently configuring USART0 for a UART(1, ...)
         # would leave the caller wiring the wrong pins and blaming the hardware.
         if id != 0:
-            raise CompileError("machine.UART: this chip has a single USART; id must be 0.")
+            raise _CompileError("machine.UART: this chip has a single USART; id must be 0.")
         self._hw = _UART(baudrate)
 
     @inline
@@ -318,7 +318,7 @@ class UART:
         # MicroPython's no-arg readline() returns a fresh bytes object, which
         # needs a heap. Error with the working alternative instead of failing
         # with a confusing arity mismatch.
-        raise CompileError("machine.UART.readline: the no-arg form returns a heap-allocated bytes object, which this target does not have. Declare a buffer and use readline(buf): buf: bytearray = bytearray(32); n = uart.readline(buf).")
+        raise _CompileError("machine.UART.readline: the no-arg form returns a heap-allocated bytes object, which this target does not have. Declare a buffer and use readline(buf): buf: bytearray = bytearray(32); n = uart.readline(buf).")
 
     @inline
     def readline(self, buf: bytearray) -> uint8:
@@ -351,31 +351,11 @@ class UART:
         # Standard MicroPython: uart.any() -> number of bytes available.
         return self._hw.available()
 
-    @inline
-    def irq(self, handler: Callable = 0, trigger: uint8 = 0, hard: uint8 = 0):
-        # MicroPython: irq(handler, trigger, hard, /) -- self and every argument are
-        # positional-only in the real stub, blocked separately by #12. trigger/hard are
-        # accepted and ignored: this chip's USART has only one real interrupt source
-        # (RX complete, the same one HAL's own UART.irq() already wires up), none of
-        # MicroPython's other IRQ_* triggers exist here (docs/limitations.md), and
-        # every ISR this HAL installs is already a true hardware interrupt.
-        _set_irq_zca_arg(handler, self)
-        self._hw.irq(handler)
-
-    @inline
-    def write_str(self, s: const[str]):
-        # PyMCU extension -- prefer write(str) for portability.
-        self._hw.write_str(s)
-
-    @inline
-    def println(self, s: const[str]):
-        # PyMCU extension -- prefer write(str) + write(10) for portability.
-        self._hw.println(s)
-
-    @inline
-    def print_byte(self, value: uint8):
-        # PyMCU extension -- prefer uart_write_decimal_u8 directly for portability.
-        self._hw.print_byte(value)
+    # The rp2 firmware's UART has no irq(), write_str(), println() or
+    # print_byte() -- the stub's irq is an esp32-port declaration, and the
+    # rest were PyMCU conveniences. println("x") callers write
+    # uart.write("x\n"): a str is a buffer under MicroPython, so the byte
+    # stream is identical to upstream's write(b"x\n").
 
 
 # ---------------------------------------------------------------------------
@@ -412,7 +392,7 @@ class ADC:
         # ESP-style channel number (MicroPython quickref: machine.ADC(0)).
         # Channels 0-5 map to A0-A5 (PC0-PC5) on the Arduino Uno.
         if channel > 5:
-            raise CompileError("machine.ADC: this chip has ADC channels 0-5 (A0-A5); use ADC(0)..ADC(5) or ADC(Pin(14))..ADC(Pin(19)).")
+            raise _CompileError("machine.ADC: this chip has ADC channels 0-5 (A0-A5); use ADC(0)..ADC(5) or ADC(Pin(14))..ADC(Pin(19)).")
         self._adc = _AnalogPin(_adc_channel_port(channel))
 
     @inline
@@ -438,12 +418,6 @@ class ADC:
         self._adc = other._adc
 
     @inline
-    def read(self) -> uint16:
-        # MicroPython-style 10-bit read (0-1023)
-        self._adc.start()
-        return self._raw_read()
-
-    @inline
     def _raw_read(self) -> uint16:
         # Read ADCL/ADCH after conversion completes.
         # Caller is responsible for starting conversion via start().
@@ -460,8 +434,10 @@ class ADC:
 
     @inline
     def read_u16(self) -> uint16:
-        # MicroPython-style 16-bit read (0-65535, scaled from 10-bit).
-        raw: uint16 = self.read()
+        # MicroPython-style 16-bit read (0-65535, scaled from 10-bit) -- the
+        # only ADC read the rp2 port exposes; there is no 0..1023 read().
+        self._adc.start()
+        raw: uint16 = self._raw_read()
         return raw * 64    # scale 0-1023 to 0-65472 (approx 0-65535)
 
 
@@ -533,19 +509,6 @@ class PWM:
         self._pwm.set_duty_u16(value)
 
     @inline
-    def duty(self) -> uint16:
-        # Getter, on MicroPython's legacy 0..1023 scale.
-        return self._duty >> 6
-
-    @inline
-    def duty(self, value: uint16):
-        # MicroPython's legacy duty is 0..1023 (ESP8266/ESP32 spelling): 512 is 50 %.
-        # It used to be read as a uint8, so duty(512) arrived as 0 and switched the output off.
-        wide: uint16 = value << 6
-        self._duty = wide
-        self._pwm.set_duty_u16(wide)
-
-    @inline
     def duty_ns(self) -> uint32:
         # Getter: the high time in nanoseconds at the current frequency.
         return _duty_u16_to_ns(self._duty, self._freq)
@@ -598,11 +561,11 @@ class SPI:
         # registers via the HAL, which already took all four; only forwarding them was
         # missing.
         if id != 0:
-            raise CompileError("machine.SPI: this chip has a single SPI bus; id must be 0.")
+            raise _CompileError("machine.SPI: this chip has a single SPI bus; id must be 0.")
         if bits != 8:
-            raise CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
+            raise _CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
         if sck is not None or mosi is not None or miso is not None:
-            raise CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
+            raise _CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
         # Calls the HAL with firstbit's own value or a literal, never a variable
         # reassigned from it: a const parameter reassigned through a branch stops
         # being a compile-time constant to this compiler.
@@ -617,9 +580,9 @@ class SPI:
              sck: const = None, mosi: const = None, miso: const = None):
         # Reprogram a bus that is already running (MicroPython standard).
         if bits != 8:
-            raise CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
+            raise _CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
         if sck is not None or mosi is not None or miso is not None:
-            raise CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
+            raise _CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
         if firstbit == SPI.LSB:
             self._spi.configure(baudrate, polarity, phase, 1)
         else:
@@ -681,13 +644,13 @@ class SoftSPI:
         # required. pymcu.hal.softspi.SoftSPI implements mode 0 (polarity=0, phase=0)
         # MSB-first only; anything else is refused by name.
         if bits != 8:
-            raise CompileError("machine.SoftSPI: bit-banged transfer is a fixed 8-bit frame; bits=8 only.")
+            raise _CompileError("machine.SoftSPI: bit-banged transfer is a fixed 8-bit frame; bits=8 only.")
         if polarity != 0 or phase != 0:
-            raise CompileError("machine.SoftSPI: only mode 0 (polarity=0, phase=0) is implemented.")
+            raise _CompileError("machine.SoftSPI: only mode 0 (polarity=0, phase=0) is implemented.")
         if firstbit == SoftSPI.LSB:
-            raise CompileError("machine.SoftSPI: only MSB-first (firstbit=SoftSPI.MSB) is implemented.")
+            raise _CompileError("machine.SoftSPI: only MSB-first (firstbit=SoftSPI.MSB) is implemented.")
         if sck is None or mosi is None or miso is None:
-            raise CompileError("machine.SoftSPI: sck=/mosi=/miso= are required; bit-banged SPI has no fixed pins to default to.")
+            raise _CompileError("machine.SoftSPI: sck=/mosi=/miso= are required; bit-banged SPI has no fixed pins to default to.")
         khz: uint16 = uint16(baudrate // 1000)
         if khz == 0:
             khz = 1
@@ -700,16 +663,16 @@ class SoftSPI:
         # standard). Pins cannot be changed after construction here (they are baked
         # into which GPIO registers the bit-bang loop touches).
         if bits != 8:
-            raise CompileError("machine.SoftSPI: bit-banged transfer is a fixed 8-bit frame; bits=8 only.")
+            raise _CompileError("machine.SoftSPI: bit-banged transfer is a fixed 8-bit frame; bits=8 only.")
         if polarity != 0 or phase != 0:
-            raise CompileError("machine.SoftSPI: only mode 0 (polarity=0, phase=0) is implemented.")
+            raise _CompileError("machine.SoftSPI: only mode 0 (polarity=0, phase=0) is implemented.")
         if firstbit == SoftSPI.LSB:
-            raise CompileError("machine.SoftSPI: only MSB-first (firstbit=SoftSPI.MSB) is implemented.")
+            raise _CompileError("machine.SoftSPI: only MSB-first (firstbit=SoftSPI.MSB) is implemented.")
         # pymcu.hal.softspi.SoftSPI.set_baudrate() is unreachable here: a compiler bug
         # (PyMCU/PyMCU#453) loses track of a field a match/case branch in __init__
         # assigns, once a class also has a Pin-typed field -- SoftSPI has three. Honest
         # refusal beats calling into a method that miscompiles.
-        raise CompileError("machine.SoftSPI.init: reprogramming the clock rate after construction is blocked by a compiler bug (PyMCU/PyMCU#453). Construct a new SoftSPI at the desired baudrate= instead.")
+        raise _CompileError("machine.SoftSPI.init: reprogramming the clock rate after construction is blocked by a compiler bug (PyMCU/PyMCU#453). Construct a new SoftSPI at the desired baudrate= instead.")
 
     @inline
     def deinit(self):
@@ -768,13 +731,13 @@ class I2C:
         # 100 kHz. Accepting scl/sda/freq and ignoring them is the worst outcome for
         # someone porting code: it builds, and the bus is simply not what they asked for.
         if id != 0:
-            raise CompileError("machine.I2C: this chip has a single TWI bus; id must be 0.")
+            raise _CompileError("machine.I2C: this chip has a single TWI bus; id must be 0.")
         if scl is not None:
-            raise CompileError("machine.I2C: the TWI pins are fixed on this chip (PC5 = SCL); drop the scl argument.")
+            raise _CompileError("machine.I2C: the TWI pins are fixed on this chip (PC5 = SCL); drop the scl argument.")
         if sda is not None:
-            raise CompileError("machine.I2C: the TWI pins are fixed on this chip (PC4 = SDA); drop the sda argument.")
+            raise _CompileError("machine.I2C: the TWI pins are fixed on this chip (PC4 = SDA); drop the sda argument.")
         if freq != 100000:
-            raise CompileError("machine.I2C: only 100000 Hz is supported on this chip; drop the freq argument.")
+            raise _CompileError("machine.I2C: only 100000 Hz is supported on this chip; drop the freq argument.")
         self._i2c = _I2C()
 
     @inline
@@ -935,7 +898,7 @@ class I2C:
         # TWI addresses an 8-bit register; addrsize is accepted and refused for
         # anything else instead of silently ignored.
         if addrsize != 8:
-            raise CompileError("machine.I2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+            raise _CompileError("machine.I2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         if len(buf) == 1:
             if self._i2c.writeto_mem(addr, memaddr, buf[0]) != 1:
                 raise OSError("[Errno 5] EIO")
@@ -964,7 +927,7 @@ class I2C:
     def readfrom_mem_into(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
         # MicroPython: readfrom_mem_into(addr, memaddr, buf, /, *, addrsize=8).
         if addrsize != 8:
-            raise CompileError("machine.I2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+            raise _CompileError("machine.I2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         if self._i2c.readfrom_mem(addr, memaddr, buf, len(buf)) != 1:
             raise OSError("[Errno 5] EIO")
         return 1
@@ -1127,7 +1090,7 @@ class SoftI2C:
     def writeto_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
         # MicroPython: writeto_mem(addr, memaddr, buf, /, *, addrsize=8).
         if addrsize != 8:
-            raise CompileError("machine.SoftI2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+            raise _CompileError("machine.SoftI2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         self._bus.start()
         if self._bus.write(addr << 1) != 0:
             self._bus.stop()
@@ -1149,7 +1112,7 @@ class SoftI2C:
     def readfrom_mem_into(self, addr: uint8, memaddr: uint8, buf: bytearray, *, addrsize: const[uint8] = 8) -> uint8:
         # MicroPython: readfrom_mem_into(addr, memaddr, buf, /, *, addrsize=8).
         if addrsize != 8:
-            raise CompileError("machine.SoftI2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+            raise _CompileError("machine.SoftI2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
         self._bus.start()
         if self._bus.write(addr << 1) != 0:
             self._bus.stop()
@@ -1215,7 +1178,7 @@ def unique_id() -> uint8:
     # ATmega328P has no factory-programmed unique ID, so there is nothing
     # honest to return. Erroring beats handing back a fake constant that a
     # ported sketch would use as a device address.
-    raise CompileError("machine.unique_id: this chip has no unique hardware ID (the ATmega328P signature row is the same for every part). Store an ID in EEPROM via the avr module instead.")
+    raise _CompileError("machine.unique_id: this chip has no unique hardware ID (the ATmega328P signature row is the same for every part). Store an ID in EEPROM via the avr module instead.")
 
 
 # ---------------------------------------------------------------------------
@@ -1262,7 +1225,7 @@ def reset_cause() -> uint8:
             return WDT_RESET
         return PWRON_RESET
     else:
-        raise CompileError("machine.reset_cause: no reset-cause register is wired up for this architecture.")
+        raise _CompileError("machine.reset_cause: no reset-cause register is wired up for this architecture.")
 
 
 @inline
@@ -1302,10 +1265,12 @@ def deepsleep():
 # ---------------------------------------------------------------------------
 
 class Timer:
+    # Mode constants -- the rp2 port's own values. The IRQ_OVF/IRQ_COMPA trigger
+    # selectors and irq()/start() methods this class used to carry are PyMCU HAL
+    # spellings, not upstream: the rp2 Timer attaches its callback through
+    # init(callback=...) and has no irq() or start() at all.
     ONE_SHOT  = 0
     PERIODIC  = 1
-    IRQ_OVF   = 1
-    IRQ_COMPA = 2
 
     @inline
     def __init__(self, id: const[uint8] = 255, prescaler: uint16 = 64,
@@ -1363,11 +1328,11 @@ class Timer:
                 ocr: uint16 = uint16(15625 // freq - 1)
             self._t.set_compare(ocr)
             if callback != 0:
-                self._t.irq(callback, Timer.IRQ_COMPA)
+                self._t.irq(callback, _Timer.IRQ_COMPA)
             _enable_interrupts()
         elif period != 0:
             if period > 4369:
-                raise CompileError("machine.Timer: period must be 1-4369 ms on this chip; above that 15 * period overflows the 16-bit compare register and the timer fires at a wrong, much shorter interval. Count several ticks in the callback for longer intervals.")
+                raise _CompileError("machine.Timer: period must be 1-4369 ms on this chip; above that 15 * period overflows the 16-bit compare register and the timer fires at a wrong, much shorter interval. Count several ticks in the callback for longer intervals.")
             if period <= 262:
                 self._t.reinit(64)
                 ocr: uint16 = uint16(250 * period - 1)
@@ -1376,7 +1341,7 @@ class Timer:
                 ocr: uint16 = uint16(15 * period)
             self._t.set_compare(ocr)
             if callback != 0:
-                self._t.irq(callback, Timer.IRQ_COMPA)
+                self._t.irq(callback, _Timer.IRQ_COMPA)
             _enable_interrupts()
         else:
             if prescaler != 0:
@@ -1389,17 +1354,10 @@ class Timer:
         self._t.stop()
 
     @inline
-    def start(self):
-        self._t.start()
-
-    @inline
-    def irq(self, handler: Callable, trigger: uint8 = 1):
-        # Standard MicroPython API: handler(timer) receives this Timer instance.
-        # The compiler synthesizes a parameterless ISR wrapper with self's ZCA
-        # constants bound, so timer.start()/deinit() etc. resolve at compile time.
-        # trigger: Timer.IRQ_OVF (1) overflow, Timer.IRQ_COMPA (2) compare-match.
-        _set_irq_zca_arg(handler, self)
-        self._t.irq(handler, trigger)
+    def __del__(self):
+        # MicroPython 1.21's rp2 Timer has __del__; PyMCU never collects, so this
+        # only ever runs when a program spells del t explicitly.
+        self._t.stop()
 
 
 # ---------------------------------------------------------------------------
@@ -1411,7 +1369,7 @@ class WDT:
     def __init__(self, id: const[uint8] = 0, timeout: uint16 = 5000):
         # timeout is in milliseconds (MicroPython convention).
         if id != 0:
-            raise CompileError("machine.WDT: this chip has a single watchdog; id must be 0.")
+            raise _CompileError("machine.WDT: this chip has a single watchdog; id must be 0.")
         self._wdt = _Watchdog(timeout)
         self._wdt.enable()
 
