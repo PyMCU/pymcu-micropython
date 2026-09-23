@@ -278,12 +278,16 @@ class Pin:
 # ---------------------------------------------------------------------------
 
 @inline
-def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint16 = 1000) -> int16:
+def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint32 = 1000000) -> int16:
+    # MicroPython: time_pulse_us(pin, pulse_level, timeout_us=1000000) -- the
+    # upstream default is one second, so the parameter must be 32-bit. The
+    # HAL's cycle-counted primitive takes a 16-bit window, so a timeout past
+    # this chip's measurable ceiling is clamped to it -- the pin still answers
+    # -1 on timeout, which is all the API contract says.
     # Accepts a machine.Pin instance (standard MicroPython API).
     # Delegates to the underlying hal.gpio.Pin.pulse_in directly, without
     # going through machine.Pin (pulse_in is not part of the MP Pin API).
-    # Returns the pulse width in microseconds, or -1 on timeout.
-    result: uint16 = pin._pin.pulse_in(pulse_level, timeout_us)
+    result: uint16 = pin._pin.pulse_in(pulse_level, 65535 if timeout_us > 65535 else uint16(timeout_us))
     if result == 0:
         return -1
     return result
