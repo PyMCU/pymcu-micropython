@@ -583,26 +583,17 @@ class PWM:
 # SPI
 # ---------------------------------------------------------------------------
 
-# A bare module-level mirror of SPI.MSB, for the same reason machine.py carries
-# one for Timer.PERIODIC: tests/parity's comparison resolves a stub default it
-# cannot evaluate (`firstbit=MSB` in micropython-rp2-stubs' own source, a bare
-# name, not a literal) against this layer function's module globals, where the
-# same bare name has to live for that resolution to find it.
-MSB = 0
-
-
 class SPI:
-    # Bit-order constants (MicroPython style).
-    MSB = 0
-    LSB = 1
-    # Role constant (MicroPython style; this HAL's peripheral/target mode is not
-    # exposed here since machine.SPI's real constructor has no way to ask for it).
-    CONTROLLER = 0
+    # Bit-order constants -- the rp2 port's own values, measured on real
+    # firmware. The stub's CONTROLLER is declared but never defined on rp2
+    # (the port's constructor has no role argument), so it is absent here.
+    MSB = 1
+    LSB = 0
 
     @inline
     def __init__(self, id: const[uint8] = 0, baudrate: const[uint32] = 1000000, *,
                  polarity: const[uint8] = 0, phase: const[uint8] = 0,
-                 bits: const[uint8] = 8, firstbit: const[uint8] = 0,
+                 bits: const[uint8] = 8, firstbit: const[uint8] = 1,
                  sck: const = None, mosi: const = None, miso: const = None):
         # MicroPython: SPI(id, baudrate=1_000_000, polarity=0, phase=0, bits=8,
         # firstbit=SPI.MSB, sck=None, mosi=None, miso=None). This chip has a single SPI
@@ -627,7 +618,7 @@ class SPI:
 
     @inline
     def init(self, baudrate: const[uint32] = 1000000, *, polarity: const[uint8] = 0,
-             phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 0,
+             phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 1,
              sck: const = None, mosi: const = None, miso: const = None):
         # Reprogram a bus that is already running (MicroPython standard).
         if bits != 8:
@@ -680,12 +671,14 @@ class SPI:
 # ---------------------------------------------------------------------------
 
 class SoftSPI:
-    MSB = 0
-    LSB = 1
+    # Bit-order constants -- the rp2 port's own values, measured on real
+    # firmware (SoftSPI.MSB == SPI.MSB upstream).
+    MSB = 1
+    LSB = 0
 
     @inline
     def __init__(self, baudrate: const[uint32] = 500000, *, polarity: const[uint8] = 0,
-                 phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 0,
+                 phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 1,
                  sck: Pin = None, mosi: Pin = None, miso: Pin = None):
         # MicroPython: SoftSPI(baudrate=500_000, polarity=0, phase=0, bits=8,
         # firstbit=SPI.MSB, sck=None, mosi=None, miso=None). Bit-banged, so unlike
@@ -707,7 +700,7 @@ class SoftSPI:
 
     @inline
     def init(self, baudrate: const[uint32] = 500000, *, polarity: const[uint8] = 0,
-             phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 0):
+             phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 1):
         # Reprogram the clock rate of a bus that is already running (MicroPython
         # standard). Pins cannot be changed after construction here (they are baked
         # into which GPIO registers the bit-bang loop touches).

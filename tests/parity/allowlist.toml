@@ -328,6 +328,12 @@ quote = "this chip has no I2S audio peripheral, no real-time-clock block, no SD/
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
+symbol = "machine.SPI.CONTROLLER"
+status = "documented"
+quote = "`machine.SPI.CONTROLLER` appear in the rp2 stub but not in the rp2"
+reason = "The rp2 stub declares the name but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
 symbol = "machine.SPI.read"
 status = "documented"
 quote = "this chip has no heap to allocate one from, so this layer's"

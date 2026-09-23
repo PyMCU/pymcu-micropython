@@ -222,6 +222,18 @@ def compare_signatures(symbol: str, layer_func: Any, stub_func: Any) -> Result:
     # compared by value instead of by source spelling.
     fns = getattr(layer_func, "_fns", None)
     resolve_ns = getattr(fns[0] if fns else layer_func, "__globals__", None)
+    if resolve_ns is not None:
+        # A stub default written inside a class body (`firstbit=MSB` inside
+        # `class SPI`, `mode=PERIODIC` inside `class Timer`) names that class's
+        # own constants -- the class body is the scope the .pyi author's
+        # default expression would have run in. Merge the layer class's
+        # namespace over the module globals so the bare name resolves the same
+        # way without the layer having to leak a module-level mirror.
+        parts = symbol.split(".")
+        if len(parts) == 3:
+            cls = resolve_ns.get(parts[1])
+            if isinstance(cls, type):
+                resolve_ns = {**resolve_ns, **vars(cls)}
     layer_shapes = [signature_shape(signature) for signature in layer_signatures]
     stub_signatures = candidate_signatures(stub_func)
     stub_shapes = [signature_shape(signature, resolve_ns) for signature in stub_signatures]

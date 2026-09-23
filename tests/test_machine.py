@@ -296,6 +296,21 @@ def test_pwm_invert_keyword():
 
 # ── SPI ───────────────────────────────────────────────────────────────────  #
 
+def test_spi_bitorder_constants():
+    # Upstream rp2 values, measured on real firmware.
+    assert SPI.MSB == 1
+    assert SPI.LSB == 0
+    assert SoftSPI.MSB == 1
+    assert SoftSPI.LSB == 0
+
+
+def test_spi_controller_name_is_absent():
+    # SPI.CONTROLLER is declared by the shared stub but never defined by the
+    # rp2 port -- its constructor has no role argument.
+    assert not hasattr(SPI, "CONTROLLER")
+    assert not hasattr(SoftSPI, "CONTROLLER")
+
+
 def test_spi_instantiation():
     spi = SPI()
     assert spi is not None
