@@ -13,6 +13,8 @@ MicroPython standard-library flavor for **PyMCU** — an AOT (ahead-of-time) Pyt
 | `machine` | `machine` | `Pin`, `UART`, `ADC`, `PWM`, `SPI`, `I2C`, `Timer`, `WDT`, `Signal` |
 | `utime` | `utime` / `time` | `sleep_ms()`, `sleep_us()`, `sleep()`, `ticks_ms()`, `ticks_us()`, `ticks_diff()`, `ticks_add()` |
 | `micropython` | `micropython` | `const()`, `@native`, `@viper` stubs |
+| `os` | `os` / `uos` | `uname()` only -- compile-time port facts (see below) |
+| `sys` | `sys` / `usys` | `implementation` and `platform` only -- compile-time port facts (see below) |
 
 ## Installation
 
@@ -78,6 +80,47 @@ RP2/Pico stub package) symbol by symbol. Where this layer deliberately differs, 
 either a hardware/architecture limit of this class of AVR chip -- documented in
 [`docs/limitations.md`](docs/limitations.md) -- or a real, tracked gap referenced from
 [`docs/parity.md`](docs/parity.md), which the suite regenerates.
+
+### `os` and `sys`: compile-time introspection only
+
+`os` provides `uname()` and `sys` provides `implementation` (`name` and `version`) and
+`platform`, because that is the whole of `os`/`sys` the MicroPython library ecosystem
+reaches for at branch time to tell ports apart (`if sys.platform == "rp2":`,
+`if sys.implementation.name == "micropython":`, `if uname().sysname == "rp2":`). The
+compiler substitutes the real per-board values at every read site, so a compiled program
+never runs these bodies; `uos` and `usys` are the same modules under MicroPython's own
+u-spelling.
+
+Everything else upstream's `os` documents -- `chdir`, `getcwd`, `ilistdir`, `listdir`,
+`mkdir`, `mount`, `remove`, `rename`, `rmdir`, `stat`, `statvfs`, `sync`, `umount`,
+`unlink`, `VfsFat`, `VfsLfs2` -- needs a filesystem this target does not have.
+`urandom` needs an entropy source there is no API for, and `dupterm` needs a stream
+object to redirect, so those stay out too. Everything else upstream's `sys` documents
+-- `argv`, `byteorder`, `exit`, `maxsize`, `modules`, `path`, `print_exception`, `ps1`,
+`ps2`, `stdin`, `stdout`, `stderr`, `version`, `version_info` -- needs a runtime PyMCU
+does not have (a module table, a filesystem, a stream object, an interpreter build to
+report on). None of them are here: a stub that returns a plausible value is worse than
+an absence, and a name that exists here but not on a board is the failure this layer
+exists to prevent.
+
+### `uasyncio`: the cooperative subset
+
+`uasyncio` re-exports `pymcu.asyncio`'s surface -- `sleep`, `sleep_ms`, `run`, `gather`,
+`ticks` -- because those are the waits and drivers a compiled coroutine actually runs.
+Everything else upstream's `uasyncio` has -- `CancelledError`, `TimeoutError`, `Event`,
+`Lock`, `ThreadSafeFlag`, `IOQueue`, `TaskQueue`, `Task`, `Loop`, `SingletonGenerator`,
+`create_task`, `current_task`, `get_event_loop`, `new_event_loop`, `run_until_complete`,
+`wait_for`, `wait_for_ms`, `StreamReader`, `StreamWriter`, `open_connection`,
+`start_server` -- is not here: the waitable/task primitives land with the compile-time
+scheduler work, and the stream half needs sockets this target does not have.
+
+Two stub artifacts to read the suite by, because the `uasyncio` stub is `from asyncio
+import *` over the shared CPython typeshed asyncio rather than a MicroPython-shaped
+stub: parameters like `loop=`, `debug=`, `result=` and `coro_or_futureN` exist nowhere
+on a board (real `uasyncio.run` is `run(coro)`, `uasyncio.sleep` is `sleep(t)`), and
+`gather` is deliberately `gather(a, b)` here -- a coroutine state machine is a type,
+not a runtime value a variadic form could iterate (pymcu.asyncio's own docstring
+explains the fixed arity and points at `create_task` for three or more).
 
 The suite runs on every push and PR via `.github/workflows/ci.yml` (pure CPython, no compiler
 needed). CI also checks out `PyMCU/PyMCU` and points at its `lib/` the same way "Running the
