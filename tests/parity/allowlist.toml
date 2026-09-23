@@ -1217,19 +1217,7 @@ quote = "needs a runtime PyMCU does not have"
 reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
 
 [[deviation]]
-symbol = "sys.byteorder"
-status = "documented"
-quote = "needs a runtime PyMCU does not have"
-reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
-
-[[deviation]]
 symbol = "sys.exit"
-status = "documented"
-quote = "needs a runtime PyMCU does not have"
-reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
-
-[[deviation]]
-symbol = "sys.maxsize"
 status = "documented"
 quote = "needs a runtime PyMCU does not have"
 reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
@@ -1283,16 +1271,10 @@ quote = "needs a runtime PyMCU does not have"
 reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
 
 [[deviation]]
-symbol = "sys.version"
-status = "documented"
-quote = "needs a runtime PyMCU does not have"
-reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
-
-[[deviation]]
 symbol = "sys.version_info"
 status = "documented"
-quote = "needs a runtime PyMCU does not have"
-reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+quote = "a tuple attribute has no honest module-level form, so the bare attribute refuses"
+reason = "Fold-only name: the compiler answers (3, 4, 0) at the sys.version_info[i] read site; the module carries no placeholder tuple. See README 'os and sys'."
 
 # -- uasyncio (cooperative subset; see README) ----------------------------
 

@@ -14,7 +14,7 @@ MicroPython standard-library flavor for **PyMCU** — an AOT (ahead-of-time) Pyt
 | `utime` | `utime` / `time` | `sleep_ms()`, `sleep_us()`, `sleep()`, `ticks_ms()`, `ticks_us()`, `ticks_diff()`, `ticks_add()` |
 | `micropython` | `micropython` | `const()`, `@native`, `@viper` stubs |
 | `os` | `os` / `uos` | `uname()` only -- compile-time port facts (see below) |
-| `sys` | `sys` / `usys` | `implementation` and `platform` only -- compile-time port facts (see below) |
+| `sys` | `sys` / `usys` | `implementation`, `platform`, `version`, `version_info`, `byteorder`, `maxsize` -- compile-time port facts (see below) |
 
 ## Installation
 
@@ -83,25 +83,30 @@ either a hardware/architecture limit of this class of AVR chip -- documented in
 
 ### `os` and `sys`: compile-time introspection only
 
-`os` provides `uname()` and `sys` provides `implementation` (`name` and `version`) and
-`platform`, because that is the whole of `os`/`sys` the MicroPython library ecosystem
-reaches for at branch time to tell ports apart (`if sys.platform == "rp2":`,
-`if sys.implementation.name == "micropython":`, `if uname().sysname == "rp2":`). The
-compiler substitutes the real per-board values at every read site, so a compiled program
-never runs these bodies; `uos` and `usys` are the same modules under MicroPython's own
-u-spelling.
+`os` provides `uname()` and `sys` provides `implementation` (`name` and `version`),
+`platform`, `version`, `version_info`, `byteorder` and `maxsize`. The introspection
+names are the `sys` reads the MicroPython library ecosystem reaches for at branch
+time to tell ports apart (`if sys.platform == "rp2":`,
+`if sys.implementation.name == "micropython":`, `if uname().sysname == "rp2":`); the
+compiler substitutes the real per-board values at every read site, so a compiled
+program never runs these bodies. `version`, `byteorder` and `maxsize` are plain
+constants -- the pinned API surface and the target's own word size/endianness --
+and `version_info` answers `(3, 4, 0)` at the `sys.version_info[i]` read site only
+(a tuple attribute has no honest module-level form, so the bare attribute refuses,
+the same contract `implementation.version` holds). `uos` and `usys` are the same
+modules under MicroPython's own u-spelling.
 
 Everything else upstream's `os` documents -- `chdir`, `getcwd`, `ilistdir`, `listdir`,
 `mkdir`, `mount`, `remove`, `rename`, `rmdir`, `stat`, `statvfs`, `sync`, `umount`,
 `unlink`, `VfsFat`, `VfsLfs2` -- needs a filesystem this target does not have.
 `urandom` needs an entropy source there is no API for, and `dupterm` needs a stream
 object to redirect, so those stay out too. Everything else upstream's `sys` documents
--- `argv`, `byteorder`, `exit`, `maxsize`, `modules`, `path`, `print_exception`, `ps1`,
-`ps2`, `stdin`, `stdout`, `stderr`, `version`, `version_info` -- needs a runtime PyMCU
-does not have (a module table, a filesystem, a stream object, an interpreter build to
-report on). None of them are here: a stub that returns a plausible value is worse than
-an absence, and a name that exists here but not on a board is the failure this layer
-exists to prevent.
+-- `argv`, `exit`, `modules`, `path`, `print_exception`, `ps1`, `ps2`, `stdin`,
+`stdout`, `stderr` -- needs a runtime PyMCU does not have (a module table, a
+filesystem search path, stream objects, command-line arguments, a REPL). None of
+them are here: a stub that returns a plausible value is worse than an absence, and
+a name that exists here but not on a board is the failure this layer exists to
+prevent.
 
 ### `uasyncio`: the cooperative subset
 

@@ -1,18 +1,23 @@
 # MicroPython-compatible sys module for PyMCU
 #
-# `sys.implementation.name`, `sys.implementation.version` and `sys.platform` are
-# provided, because that is the whole of `sys` the MicroPython library ecosystem
-# reaches for at import/branch time to tell ports apart (PyMCU docs/rfcs/0007:
-# `if sys.platform == "rp2":` / `if sys.implementation.name == "micropython":`
-# are the two shapes the CircuitPython-side survey found MicroPython libraries
-# write, mirrored here for the same reason the CircuitPython flavor exists).
+# `sys.implementation.name`, `sys.implementation.version`, `sys.platform`,
+# `sys.version`, `sys.version_info`, `sys.byteorder` and `sys.maxsize` are
+# provided. The first three are the `sys` reads the MicroPython library
+# ecosystem reaches for at import/branch time to tell ports apart (PyMCU
+# docs/rfcs/0007: `if sys.platform == "rp2":` /
+# `if sys.implementation.name == "micropython":` are the two shapes the
+# CircuitPython-side survey found MicroPython libraries write, mirrored here
+# for the same reason the CircuitPython flavor exists). The other four are
+# plain compile-time facts -- the pinned API surface and the target's own word
+# size/endianness -- that a module-level constant (or, for version_info, an
+# indexed fold) can state honestly.
 #
-# The rest of MicroPython's sys -- argv, byteorder, exit(), maxsize, modules,
-# path, print_exception, stdin, stdout, stderr, version, version_info -- is NOT
-# here. Every one of them needs a runtime PyMCU does not have (a module table,
-# a filesystem, a stream object) or reports an interpreter build there is no
-# interpreter to report on, and a name that exists here but not on a board is
-# the failure this layer exists to prevent.
+# The rest of MicroPython's sys -- argv, exit(), modules, path,
+# print_exception, ps1, ps2, stdin, stdout, stderr -- is NOT here. Every one
+# of them needs a runtime PyMCU does not have (a module table, a filesystem
+# search path, stream objects, command-line arguments, a REPL), and a name
+# that exists here but not on a board is the failure this layer exists to
+# prevent.
 #
 # Why the value is "micropython": a program built against this layer is meant
 # to be the same program that runs under MicroPython, so the guards libraries
@@ -43,6 +48,20 @@
 #   upstream port for either): honest, since no such board is really "rp2" or
 #   "samd" and a guard comparing against one of those should take its generic
 #   (false) branch.
+#
+# `sys.version` reports "3.4.0; MicroPython v1.29.0": the language level and
+# the pinned API surface, both true facts. Upstream appends the firmware
+# build date ("... on 2023-10-06") -- a fact about one specific firmware
+# image that no layer can honestly claim, so it is left off rather than
+# fabricated.
+#
+# `sys.version_info` is (3, 4, 0), the Python language version MicroPython
+# reports -- not the MicroPython version (that is
+# `sys.implementation.version`). It exists ONLY at the `sys.version_info[i]`
+# read site: a tuple attribute has no honest module-level form under pymcuc,
+# so the compiler folds the indexed read and the bare attribute (and
+# `from sys import version_info`) refuses, the same contract
+# `sys.implementation.version` holds.
 #
 # Usage:
 #   import sys
@@ -79,3 +98,12 @@ implementation = _Implementation()
 # docstring). Illustrative default matches the Pico, the most common board
 # this layer builds for.
 platform = "rp2"
+
+# Honest constants -- the same on every board this layer supports.
+# `version_info` is deliberately NOT a module attribute: a tuple global has no
+# honest form under pymcuc, so the compiler folds `sys.version_info[i]` and the
+# bare attribute refuses, exactly like `sys.implementation.version` (see the
+# module docstring).
+version = "3.4.0; MicroPython v1.29.0"
+byteorder = "little"
+maxsize = 2147483647

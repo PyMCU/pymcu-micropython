@@ -28,11 +28,36 @@ def test_usys_is_sys():
     # Upstream usys is the same module under the u-spelling.
     assert usys_mod.implementation is sys_mod.implementation
     assert usys_mod.platform is sys_mod.platform
+    assert usys_mod.version is sys_mod.version
+
+
+def test_version_string():
+    # Language level + pinned API surface (the parity suite pins
+    # micropython-rp2-stubs>=1.29.0). Upstream appends the firmware build
+    # date; the layer states only the facts it can honestly claim.
+    assert sys_mod.version == "3.4.0; MicroPython v1.29.0"
+
+
+def test_version_info_absent():
+    # version_info has no runtime form: a tuple attribute cannot materialize
+    # honestly under pymcuc, so the compiler folds `sys.version_info[i]` to
+    # (3, 4, 0)[i] -- the Python language version upstream reports -- and the
+    # bare attribute refuses, the same contract implementation.version holds.
+    assert not hasattr(sys_mod, "version_info")
+
+
+def test_target_constants():
+    # Pure target facts: every chip this layer compiles for is little-endian
+    # and addresses a 32-bit int.
+    assert sys_mod.byteorder == "little"
+    assert sys_mod.maxsize == 2147483647
 
 
 def test_public_surface():
-    # Only implementation and platform -- no runtime-dependent names
-    # (argv, byteorder, exit, maxsize, modules, path, print_exception,
-    # stdin/stdout/stderr, version, version_info) and no import leaks.
-    assert sorted(n for n in dir(sys_mod) if not n.startswith("_")) == ["implementation", "platform"]
-    assert sorted(n for n in dir(usys_mod) if not n.startswith("_")) == ["implementation", "platform"]
+    # implementation + platform + the honest constants -- no runtime-dependent
+    # names (argv, exit, modules, path, print_exception, ps1/ps2,
+    # stdin/stdout/stderr), no fold-only names (version_info), and no import
+    # leaks.
+    expected = ["byteorder", "implementation", "maxsize", "platform", "version"]
+    assert sorted(n for n in dir(sys_mod) if not n.startswith("_")) == expected
+    assert sorted(n for n in dir(usys_mod) if not n.startswith("_")) == expected
