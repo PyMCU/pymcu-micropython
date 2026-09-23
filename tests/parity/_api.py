@@ -87,10 +87,12 @@ class _DefaultExpr:
         return self.expr
 
 
-def pytest_generate_for_module(metafunc, module_name: str) -> None:
+def pytest_generate_for_module(metafunc, module_name: str, only: set[str] | None = None) -> None:
     if "case" not in metafunc.fixturenames:
         return
     cases = collect_cases(module_name)
+    if only is not None:
+        cases = [case for case in cases if case.symbol in only]
     ids = [case.full_symbol for case in cases]
     metafunc.parametrize("case", cases, ids=ids)
 
@@ -269,40 +271,156 @@ def is_exit_compatible(signature: inspect.Signature) -> bool:
 
 
 def load_stub_module(module_name: str) -> ModuleType:
-    stub_path = stub_file_for(module_name)
+    return load_stub_file(stub_file_for(module_name))
+
+
+def load_stub_file(stub_path: Path, seen: frozenset[Path] = frozenset()) -> ModuleType:
     source = stub_path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(stub_path), type_comments=True)
-    module = ModuleType(f"_micropython_stub_{module_name}")
-    for node in tree.body:
-        add_stub_node(module.__dict__, node)
+    module = ModuleType(f"_micropython_stub_{stub_path.stem}")
+    for node in expand_guarded(tree.body):
+        add_stub_node(module.__dict__, node, stub_path, seen)
     return module
 
 
+# MicroPython's own sys.version_info is (3, 4, 0) -- the language level it
+# implements -- which is what the shared typeshed guards are really asking
+# about when they write `if sys.version_info >= (3, 10):` (answer: False, so
+# `orig_argv`, `monitoring`, `exception()` and friends do not exist upstream).
+_MP_VERSION_INFO = (3, 4, 0)
+
+# The ports MicroPython runs on that typeshed can name in `sys.platform`
+# guards. Bare-metal MicroPython answers "rp2"/"samd"/"esp32"/"pyboard"/...
+# -- none of these, so `sys.platform == "win32"` is False and
+# `sys.platform != "win32"` is True for the whole family.
+_TYPESHED_OS_PLATFORMS = {"win32", "linux", "darwin", "emscripten", "wasi"}
+
+
+def expand_guarded(nodes):
+    # The shared stdlib stubs (stdlib/os, stdlib/sys) wrap declarations in
+    # typeshed guards: `if sys.platform != "win32":`, `if sys.version_info >=
+    # (3, 10):`. MicroPython's os.uname() lives inside the first kind, so
+    # without descending the one name this layer provides escapes the suite
+    # while CPython-only noise is collected unchecked. Guards that are not
+    # recognised keep both branches out -- the conservative outcome.
+    for node in nodes:
+        if isinstance(node, ast.If):
+            taken = typeshed_branch(node)
+            if taken is not None:
+                yield from expand_guarded(taken)
+            continue
+        yield node
+
+
+def typeshed_branch(node: ast.If) -> list[ast.stmt] | None:
+    result = eval_typeshed_test(node.test)
+    if result is None:
+        return None
+    return node.body if result else node.orelse
+
+
+def eval_typeshed_test(test: ast.AST) -> bool | None:
+    if isinstance(test, ast.BoolOp):
+        values = [eval_typeshed_test(v) for v in test.values]
+        if isinstance(test.op, ast.And):
+            if any(v is False for v in values):
+                return False
+            return True if all(v is True for v in values) else None
+        if any(v is True for v in values):
+            return True
+        return False if all(v is False for v in values) else None
+
+    if not isinstance(test, ast.Compare) or len(test.ops) != 1 or len(test.comparators) != 1:
+        return None
+
+    left = test.left
+    right = test.comparators[0]
+    op = test.ops[0]
+
+    # `sys.platform == "win32"` / `sys.platform != "linux"` etc.
+    if (
+        isinstance(left, ast.Attribute)
+        and isinstance(left.value, ast.Name)
+        and left.value.id == "sys"
+        and left.attr == "platform"
+        and isinstance(right, ast.Constant)
+        and isinstance(right.value, str)
+        and right.value in _TYPESHED_OS_PLATFORMS
+    ):
+        if isinstance(op, ast.Eq):
+            return False
+        if isinstance(op, ast.NotEq):
+            return True
+        return None
+
+    # `sys.version_info >= (3, 10)` / `sys.version_info < (3, 9)` etc.
+    if (
+        isinstance(left, ast.Attribute)
+        and isinstance(left.value, ast.Name)
+        and left.value.id == "sys"
+        and left.attr == "version_info"
+    ):
+        other = _int_tuple(right)
+        if other is None:
+            return None
+        ours = _MP_VERSION_INFO
+        padded = tuple(other[i] if i < len(other) else 0 for i in range(3))
+        if isinstance(op, ast.GtE):
+            return ours >= padded
+        if isinstance(op, ast.Gt):
+            return ours > padded
+        if isinstance(op, ast.LtE):
+            return ours <= padded
+        if isinstance(op, ast.Lt):
+            return ours < padded
+        if isinstance(op, ast.Eq):
+            return ours == padded
+        if isinstance(op, ast.NotEq):
+            return ours != padded
+        return None
+
+    return None
+
+
+def _int_tuple(node: ast.AST) -> tuple[int, ...] | None:
+    if not isinstance(node, ast.Tuple):
+        return None
+    values = []
+    for elt in node.elts:
+        if isinstance(elt, ast.Constant) and isinstance(elt.value, int):
+            values.append(elt.value)
+        else:
+            return None
+    return tuple(values)
+
+
 def stub_file_for(module_name: str) -> Path:
-    for site_packages in site_package_roots():
-        stub_path = site_packages / module_name.replace(".", "/") / "__init__.pyi"
-        if stub_path.exists():
-            return stub_path
-        stub_path = site_packages / f"{module_name}.pyi"
-        if stub_path.exists():
-            return stub_path
-
-    try:
-        dist = importlib.metadata.distribution("micropython-rp2-stubs")
-    except importlib.metadata.PackageNotFoundError as exc:
-        raise RuntimeError(
-            "micropython-rp2-stubs is not installed. Run "
-            "`UV_CACHE_DIR=.uv-cache uv add --dev micropython-rp2-stubs` "
-            "or install it into the active test environment."
-        ) from exc
-
-    files = list(dist.files or [])
+    # Port/board modules ship at the site-packages root (machine.pyi, rp2.pyi,
+    # uos.pyi); the shared stdlib modules ship under stdlib/ (stdlib/os/,
+    # stdlib/sys/), installed by micropython-stdlib-stubs. A name can exist in
+    # either, so both roots are searched.
     wanted = module_name.replace(".", "/")
-    candidates = {f"{wanted}.pyi", f"{wanted}/__init__.pyi"}
-    for file in files:
-        as_posix = file.as_posix()
-        if as_posix in candidates:
-            return Path(dist.locate_file(file))
+    for site_packages in site_package_roots():
+        for prefix in ("", "stdlib"):
+            base = site_packages / prefix if prefix else site_packages
+            stub_path = base / wanted / "__init__.pyi"
+            if stub_path.exists():
+                return stub_path
+            stub_path = base / f"{wanted}.pyi"
+            if stub_path.exists():
+                return stub_path
+
+    for dist_name in ("micropython-rp2-stubs", "micropython-stdlib-stubs"):
+        try:
+            dist = importlib.metadata.distribution(dist_name)
+        except importlib.metadata.PackageNotFoundError:
+            continue
+        candidates = {f"{wanted}.pyi", f"{wanted}/__init__.pyi",
+                      f"stdlib/{wanted}.pyi", f"stdlib/{wanted}/__init__.pyi"}
+        for file in dist.files or []:
+            as_posix = file.as_posix()
+            if as_posix in candidates:
+                return Path(dist.locate_file(file))
     raise FileNotFoundError(f"no MicroPython stub file found for module {module_name!r}")
 
 
@@ -320,9 +438,14 @@ def venv_vars(venv: Path) -> dict[str, str]:
     return {"base": str(venv), "platbase": str(venv)}
 
 
-def add_stub_node(namespace: dict[str, Any], node: ast.AST) -> None:
+def add_stub_node(
+    namespace: dict[str, Any],
+    node: ast.AST,
+    stub_path: Path,
+    seen: frozenset[Path],
+) -> None:
     if isinstance(node, ast.ImportFrom) and node.names and node.names[0].name == "*":
-        merge_star_import(namespace, node)
+        merge_star_import(namespace, node, stub_path, seen)
         return
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         if not is_public(node.name):
@@ -342,15 +465,52 @@ def add_stub_node(namespace: dict[str, Any], node: ast.AST) -> None:
         namespace.setdefault(name, StubConstant())
 
 
-def merge_star_import(namespace: dict[str, Any], node: ast.ImportFrom) -> None:
-    if node.module is None:
+def merge_star_import(
+    namespace: dict[str, Any],
+    node: ast.ImportFrom,
+    stub_path: Path,
+    seen: frozenset[Path],
+) -> None:
+    target = resolve_star_target(stub_path, node)
+    # A package re-exporting itself (`from . import *`) or a cycle back to a
+    # stub already being read adds nothing and would recurse forever.
+    if target is None or target in seen or target == stub_path:
         return
     try:
-        imported = load_stub_module(node.module)
+        imported = load_stub_file(target, seen | {stub_path})
     except Exception:
         return
     for name, value in public_items(imported):
         namespace.setdefault(name, value)
+
+
+def resolve_star_target(stub_path: Path, node: ast.ImportFrom) -> Path | None:
+    # `from .micropython import *` inside stdlib/asyncio/__init__.pyi means
+    # stdlib/asyncio/micropython.pyi -- resolved against the importing file's
+    # own directory, NOT the top-level `micropython` module. Reading it as
+    # top-level used to merge every micropython.* internal (const, schedule,
+    # viper, ...) into uasyncio's surface. Absolute imports keep the same
+    # search order stub_file_for uses.
+    if node.level:
+        base = stub_path.parent
+        for _ in range(node.level - 1):
+            base = base.parent
+        rel = (node.module or "").replace(".", "/")
+        if rel:
+            base = base / rel
+            candidates = (base.with_suffix(".pyi"), base / "__init__.pyi")
+        else:
+            candidates = (base / "__init__.pyi",)
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return None
+    if node.module is None:
+        return None
+    try:
+        return stub_file_for(node.module)
+    except FileNotFoundError:
+        return None
 
 
 def build_stub_class(node: ast.ClassDef) -> type:

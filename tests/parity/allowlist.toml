@@ -1108,3 +1108,304 @@ symbol = "utime.time_ns"
 status = "documented"
 quote = "this chip has no RTC peripheral, so only the free-running `ticks_ms()`/`ticks_us()` counters are available."
 reason = "Documented limitation for this chip; see docs/limitations.md."
+
+# -- os (compile-time introspection only; see README) -------------------
+
+[[deviation]]
+symbol = "os.chdir"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.getcwd"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.ilistdir"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.listdir"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.mkdir"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.mount"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.remove"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.rename"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.rmdir"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.stat"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.statvfs"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.sync"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.umount"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.unlink"
+status = "documented"
+quote = "needs a filesystem this target does not have"
+reason = "No filesystem on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.dupterm"
+status = "documented"
+quote = "needs a stream object to redirect"
+reason = "No stream objects on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "os.urandom"
+status = "documented"
+quote = "needs an entropy source there is no API for"
+reason = "No entropy source on this target; see README 'os and sys'."
+
+
+# -- sys (compile-time introspection only; see README) ------------------
+
+[[deviation]]
+symbol = "sys.argv"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.byteorder"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.exit"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.maxsize"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.modules"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.path"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.print_exception"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.ps1"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.ps2"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.stderr"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.stdin"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.stdout"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.version"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+[[deviation]]
+symbol = "sys.version_info"
+status = "documented"
+quote = "needs a runtime PyMCU does not have"
+reason = "No module table/filesystem/streams on this target; see README 'os and sys'."
+
+# -- uasyncio (cooperative subset; see README) ----------------------------
+
+[[deviation]]
+symbol = "uasyncio.CancelledError"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.Event"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.Lock"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.StreamReader"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.StreamWriter"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.ThreadSafeFlag"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.TimeoutError"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.create_task"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.current_task"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.get_event_loop"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.new_event_loop"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.open_connection"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.start_server"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.wait_for"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.wait_for_ms"
+status = "documented"
+quote = "is not here: the waitable/task primitives land with the compile-time scheduler work, and the stream half needs sockets this target does not have"
+reason = "Upstream waitable/stream type or scheduler entry point; see README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.sleep"
+status = "documented"
+quote = "parameters like `loop=`, `debug=`, `result=` and `coro_or_futureN` exist nowhere on a board"
+reason = "Stub signature is CPython typeshed asyncio, not the board's; real uasyncio signature is what we implement. See README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.sleep_ms"
+status = "documented"
+quote = "parameters like `loop=`, `debug=`, `result=` and `coro_or_futureN` exist nowhere on a board"
+reason = "Stub signature is CPython typeshed asyncio, not the board's; real uasyncio signature is what we implement. See README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.run"
+status = "documented"
+quote = "parameters like `loop=`, `debug=`, `result=` and `coro_or_futureN` exist nowhere on a board"
+reason = "Stub signature is CPython typeshed asyncio, not the board's; real uasyncio signature is what we implement. See README 'uasyncio: the cooperative subset'."
+
+[[deviation]]
+symbol = "uasyncio.gather"
+status = "documented"
+quote = "`gather` is deliberately `gather(a, b)` here -- a coroutine state machine is a type, not a runtime value a variadic form could iterate"
+reason = "Fixed two-coroutine arity by design; see README 'uasyncio: the cooperative subset'."
