@@ -529,8 +529,10 @@ class PWM:
         self._pwm.set_duty_u16(duty16)
 
     @inline
-    def init(self, freq: uint16 = 0, duty_u16: uint16 = 0, duty_ns: uint32 = 0):
-        # MicroPython: init(*, freq, duty_u16, duty_ns) reprograms what is given and
+    def init(self, *, freq: uint16 = 0, duty_u16: uint16 = 0, duty_ns: uint32 = 0):
+        # MicroPython: init(*, freq, duty_u16, duty_ns) -- keyword-only, so a
+        # positional init(20000) refuses here exactly as it does on a board.
+        # init() reprograms what is given and
         # (re)starts the output. A 0 here means "not given": duty_u16=0 alone does not
         # switch the output off, use duty_u16(0) for that.
         if freq != 0:
