@@ -320,15 +320,20 @@ def test_spi_write():
 
 
 def test_spi_read():
+    # MicroPython's SPI.read(nbytes) returns a heap-allocated bytes object;
+    # this layer refuses it at compile time and names readinto(buf).
     spi = SPI()
-    val = spi.read()
-    assert val == 0
+    with pytest.raises(CompileError, match="heap-allocated bytes"):
+        spi.read(1)
 
 
 def test_spi_write_readinto():
+    # Upstream's only write_readinto is the buffer pair; the single-byte
+    # overload was a PyMCU invention and is gone.
     spi = SPI()
-    val = spi.write_readinto(0xAB, 0)
-    assert val == 0
+    write_buf = bytearray(b"\xAB")
+    read_buf = bytearray(1)
+    spi.write_readinto(write_buf, read_buf)
 
 
 def test_spi_constructor_form():
@@ -365,8 +370,8 @@ def test_softspi_instantiation_and_transfer():
     miso = Pin(4, Pin.IN)
     spi = SoftSPI(baudrate=200000, sck=sck, mosi=mosi, miso=miso)
     spi.write(0xAB)
-    val = spi.read()
-    assert val == 0
+    buf = bytearray(1)
+    spi.readinto(buf)
     spi.deinit()
 
 

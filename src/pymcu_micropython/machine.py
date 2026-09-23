@@ -604,8 +604,12 @@ class SPI:
         pass
 
     @inline
-    def write(self, data: uint8):
-        self._spi.write(data)
+    def write(self, buf: uint8):
+        # Single-byte write. Upstream's write() takes only a buffer, but a
+        # uint8 is the honest one-byte shape on a heap-less target -- the name
+        # and arity match, so a ported write(bytearray) call binds the buffer
+        # overload below.
+        self._spi.write(buf)
 
     @inline
     def write(self, buf: bytearray):
@@ -614,20 +618,17 @@ class SPI:
         self._spi.write_bytes(buf, len(buf))
 
     @inline
-    def read(self, write_byte: uint8 = 0xFF) -> uint8:
-        return self._spi.transfer(write_byte)
+    def read(self, nbytes: const[uint8], write: uint8 = 0x00) -> uint8:
+        # MicroPython: read(nbytes, write=0x00) returns a fresh bytes object,
+        # which needs a heap this target does not have. A caller after one
+        # byte uses readinto() on a bytearray(1) and takes buf[0].
+        raise _CompileError("machine.SPI.read: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: buf = bytearray(n); spi.readinto(buf).")
 
     @inline
-    def readinto(self, buf: bytearray, write_byte: uint8 = 0):
+    def readinto(self, buf: bytearray, write: uint8 = 0x00):
         # MicroPython: readinto(buf, write=0, /) fills len(buf) bytes, sending
-        # write_byte as the dummy byte on MOSI for each one. One overload, not two:
-        # the stub declares a single default-valued parameter, and this matches its
-        # default (0) exactly instead of this layer's own former 0xFF.
-        self._spi.readinto_n(buf, len(buf), write_byte)
-
-    @inline
-    def write_readinto(self, out: uint8, in_val: uint8) -> uint8:
-        return self._spi.transfer(out)
+        # write as the dummy byte on MOSI for each one.
+        self._spi.readinto_n(buf, len(buf), write)
 
     @inline
     def write_readinto(self, write_buf: bytearray, read_buf: bytearray):
@@ -691,8 +692,8 @@ class SoftSPI:
         pass
 
     @inline
-    def write(self, data: uint8):
-        self._spi.write(data)
+    def write(self, buf: uint8):
+        self._spi.write(buf)
 
     @inline
     def write(self, buf: bytearray):
@@ -703,23 +704,20 @@ class SoftSPI:
             i = i + 1
 
     @inline
-    def read(self, write_byte: uint8 = 0xFF) -> uint8:
-        return self._spi.transfer(write_byte)
+    def read(self, nbytes: const[uint8], write: uint8 = 0x00) -> uint8:
+        # MicroPython: read(nbytes, write=0x00) returns a fresh bytes object,
+        # which needs a heap this target does not have -- same refusal as
+        # SPI.read. Fill a caller-owned buffer with readinto() instead.
+        raise _CompileError("machine.SoftSPI.read: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: buf = bytearray(n); spi.readinto(buf).")
 
     @inline
-    def readinto(self, buf: bytearray):
+    def readinto(self, buf: bytearray, write: uint8 = 0x00):
+        # MicroPython: readinto(buf, write=0x00) -- one overload with the
+        # upstream default, which is 0x00, not this layer's former 0xFF.
         i: uint8 = 0
         n: uint8 = len(buf)
         while i < n:
-            buf[i] = self._spi.transfer(0xFF)
-            i = i + 1
-
-    @inline
-    def readinto(self, buf: bytearray, write_byte: uint8):
-        i: uint8 = 0
-        n: uint8 = len(buf)
-        while i < n:
-            buf[i] = self._spi.transfer(write_byte)
+            buf[i] = self._spi.transfer(write)
             i = i + 1
 
     @inline
