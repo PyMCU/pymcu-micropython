@@ -613,6 +613,14 @@ def test_softi2c_raises_eio_on_data_nack():
     assert str(e.value) == "[Errno 5] EIO"
 
 
+def test_i2c_deinit_names_are_absent():
+    # I2C.deinit / SoftI2C.deinit are stub declarations the rp2 firmware does
+    # not define (measured on MicroPython 1.21) -- there is no bus teardown
+    # method upstream on this port.
+    assert not hasattr(I2C, "deinit")
+    assert not hasattr(SoftI2C, "deinit")
+
+
 # ── Module-level constants ────────────────────────────────────────────────  #
 
 def test_sleep_mode_names_are_absent():

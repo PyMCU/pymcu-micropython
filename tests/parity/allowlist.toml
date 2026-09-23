@@ -119,8 +119,15 @@ reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
 symbol = "machine.I2C.deinit"
-status = "tracked:#15"
-reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode support is not implemented; tracked by PyMCU/pymcu-micropython#15."
+status = "documented"
+quote = "the stub carries them from ports that keep"
+reason = "The rp2 stub declares I2C.deinit() but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
+
+[[deviation]]
+symbol = "machine.SoftI2C.deinit"
+status = "documented"
+quote = "the stub carries them from ports that keep"
+reason = "The rp2 stub declares SoftI2C.deinit() but the rp2 firmware does not export it; measured on MicroPython 1.21 on real RP2040 silicon."
 
 [[deviation]]
 symbol = "machine.I2C.init"
