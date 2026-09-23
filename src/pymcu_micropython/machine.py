@@ -307,14 +307,16 @@ class UART:
         self._hw = _UART(baudrate)
 
     @inline
-    def write(self, data: uint8):
-        self._hw.write(data)
+    def write(self, buf: uint8):
+        # Single-byte write: upstream's write(buf) takes a buffer, and a uint8
+        # is the honest one-byte shape on a heap-less target.
+        self._hw.write(buf)
 
     @inline
-    def write(self, data: const[str]):
+    def write(self, buf: const[str]):
         # Overload: write a compile-time string literal (e.g. uart.write("OK\n")).
         # Maps to write_str; equivalent to uart.write(b"OK\n") in standard MicroPython.
-        self._hw.write_str(data)
+        self._hw.write_str(buf)
 
     @inline
     def read(self) -> uint8:
