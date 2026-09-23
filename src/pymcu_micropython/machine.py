@@ -1448,6 +1448,19 @@ class _Mem16:
         p.value = value
 
 
+class _Mem32:
+    @inline
+    def __getitem__(self, addr: uint16) -> uint32:
+        p: ptr[uint32] = ptr(addr)
+        return p.value
+
+    @inline
+    def __setitem__(self, addr: uint16, value: uint32):
+        p: ptr[uint32] = ptr(addr)
+        p.value = value
+
+
 mem8  = _Mem8()
 mem16 = _Mem16()
+mem32 = _Mem32()
 

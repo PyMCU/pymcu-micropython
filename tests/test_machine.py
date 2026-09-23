@@ -5,7 +5,7 @@ from pymcu_micropython.machine import (
     Pin, UART, ADC, PWM, SPI, SoftSPI, I2C, SoftI2C, time_pulse_us,
     Timer, WDT, freq, disable_irq, enable_irq, idle, lightsleep, deepsleep,
     PWRON_RESET, WDT_RESET, reset_cause,
-    Signal, mem8, mem16,
+    Signal, mem8, mem16, mem32,
 )
 
 
