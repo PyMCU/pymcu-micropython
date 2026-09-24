@@ -148,9 +148,9 @@ def test_pin_call_write_255_is_not_a_read():
     # collides with "no argument".
     pin = Pin(13, Pin.OUT)
     v = pin(255)
-    assert v == 255
+    assert v is None
     v = pin.value(255)
-    assert v == 255
+    assert v is None
 
 
 def test_pin_irq_upstream_kwargs():

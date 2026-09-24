@@ -214,8 +214,8 @@ class TestBoardToI2C:
     def test_writeto_readfrom(self):
         i2c = I2C()
         i2c.writeto(0x68, 0x3B)
-        val = i2c.readfrom(0x68)
-        assert isinstance(val, int)
+        buf = bytearray(1)
+        i2c.readfrom_into(0x68, buf)
 
 
 # ── board → machine.SPI ───────────────────────────────────────────────────── #
@@ -230,14 +230,17 @@ class TestBoardToSPI:
         spi.write(0xAB)
 
     def test_read(self):
+        # Upstream's heap-returning read(nbytes) is refused; readinto(buf) is
+        # the caller-owned-buffer form this layer provides.
         spi = SPI()
-        val = spi.read()
-        assert isinstance(val, int)
+        buf = bytearray(1)
+        spi.readinto(buf)
 
     def test_write_readinto(self):
         spi = SPI()
-        val = spi.write_readinto(0xAB, 0)
-        assert isinstance(val, int)
+        write_buf = bytearray(b"\xAB")
+        read_buf = bytearray(1)
+        spi.write_readinto(write_buf, read_buf)
 
 
 # ── board_chips ───────────────────────────────────────────────────────────── #
@@ -347,11 +350,12 @@ class TestTypicalWorkflows:
 
     def test_spi_exchange_pattern(self):
         spi = SPI()
-        val = spi.write_readinto(0xFF, 0)
-        assert isinstance(val, int)
+        write_buf = bytearray(b"\xFF")
+        read_buf = bytearray(1)
+        spi.write_readinto(write_buf, read_buf)
 
     def test_i2c_sensor_pattern(self):
         i2c = I2C()
         i2c.writeto(0x76, 0xD0)   # read chip-id register
-        chip_id = i2c.readfrom(0x76)
-        assert isinstance(chip_id, int)
+        buf = bytearray(1)
+        i2c.readfrom_into(0x76, buf)

@@ -511,12 +511,6 @@ status = "tracked:#12"
 reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
-symbol = "machine.mem32"
-status = "documented"
-quote = "this is an 8-bit architecture with a 16-bit address bus, and `mem8`/`mem16` already reach everything a `mem32` window would."
-reason = "Documented limitation for this chip; see docs/limitations.md."
-
-[[deviation]]
 symbol = "machine.mem_backup"
 status = "documented"
 quote = "there is no always-on backup memory domain and no software-triggered bootloader entry point on this chip."
