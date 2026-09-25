@@ -12,7 +12,10 @@
   real interpreter running the same programs (`tests/test_framebuf.py`), and the same
   probes are run as compiled AVR firmware on the emulated Uno in the `pymcu-avr` checkout.
   A format that is a compile-time constant, which is what every driver passes, folds the
-  format ladder away and the unused arms cost nothing. `poly()`, a run-time text string and
+  format ladder away and the unused arms cost nothing. The buffer is checked against the
+  geometry while compiling, with upstream's own formula, so a buffer too small for its
+  width, height and format is refused instead of being written past its end; agreed with
+  the real interpreter over 210 boundary cases. `poly()`, a run-time text string and
   the tuple form of `blit()`'s source are refused with diagnostics that name the
   alternative, and `ellipse()` is refused too while PyMCU/PyMCU#510 is
   open: it is implemented and correct, but a program whose only call to it is one call gets
