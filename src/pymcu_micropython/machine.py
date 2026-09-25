@@ -347,8 +347,8 @@ class UART:
     def readinto(self, buf: bytearray) -> uint8:
         # Matches MicroPython: readinto(buf) fills len(buf) bytes (blocking).
         # len(buf) folds to a compile-time constant from the array declaration.
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             buf[i] = self._hw.read()
             i = i + 1
@@ -703,8 +703,8 @@ class SoftSPI:
 
     @inline
     def write(self, buf: bytearray):
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             self._spi.write(buf[i])
             i = i + 1
@@ -720,16 +720,16 @@ class SoftSPI:
     def readinto(self, buf: bytearray, write: uint8 = 0x00):
         # MicroPython: readinto(buf, write=0x00) -- one overload with the
         # upstream default, which is 0x00, not this layer's former 0xFF.
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             buf[i] = self._spi.transfer(write)
             i = i + 1
 
     @inline
     def write_readinto(self, write_buf: bytearray, read_buf: bytearray):
-        i: uint8 = 0
-        n: uint8 = len(write_buf)
+        i: uint16 = 0
+        n: uint16 = len(write_buf)
         while i < n:
             read_buf[i] = self._spi.transfer(write_buf[i])
             i = i + 1
@@ -820,8 +820,8 @@ class I2C:
             if self._i2c.write(addr << 1) != _I2C.SLA_ACK:
                 self._i2c.stop()
                 raise OSError("[Errno 5] EIO")
-            i: uint8 = 0
-            n: uint8 = len(buf)
+            i: uint16 = 0
+            n: uint16 = len(buf)
             while i < n:
                 if self._i2c.write(buf[i]) != _I2C.DATA_ACK:
                     self._i2c.stop()
@@ -853,8 +853,8 @@ class I2C:
         if self._i2c.write((addr << 1) | 1) != _I2C.SLA_R_ACK:
             self._i2c.stop()
             raise OSError("[Errno 5] EIO")
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if i == n - 1:
                 buf[i] = self._i2c.read_nack()
@@ -873,12 +873,13 @@ class I2C:
         self._i2c.stop()
 
     @inline
-    def write(self, buf: bytearray) -> uint8:
+    def write(self, buf: bytearray) -> uint16:
         # MicroPython: write(buf) writes buf during a manually start()/stop()-sequenced
-        # transaction. Returns the number of ACKs received.
-        acks: uint8 = 0
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        # transaction. Returns the number of ACKs received -- one per byte, so a buffer
+        # longer than 255 needs a count wider than a byte to report it.
+        acks: uint16 = 0
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             status: uint8 = self._i2c.write(buf[i])
             if status == 0x18 or status == 0x28:
@@ -891,8 +892,8 @@ class I2C:
         # MicroPython: readinto(buf, nack=True, /). nack=True (the normal case) sends
         # NACK after the last byte; nack=False sends ACK even for the last byte, for a
         # read that will be followed by more reads before stop().
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if i == n - 1 and nack:
                 buf[i] = self._i2c.read_nack()
@@ -921,8 +922,8 @@ class I2C:
         if self._i2c.write(memaddr) != _I2C.DATA_ACK:
             self._i2c.stop()
             raise OSError("[Errno 5] EIO")
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if self._i2c.write(buf[i]) != _I2C.DATA_ACK:
                 self._i2c.stop()
@@ -1015,8 +1016,8 @@ class SoftI2C:
             if self._bus.write(addr << 1) != 0:
                 self._bus.stop()
                 raise OSError("[Errno 5] EIO")
-            i: uint8 = 0
-            n: uint8 = len(buf)
+            i: uint16 = 0
+            n: uint16 = len(buf)
             while i < n:
                 if self._bus.write(buf[i]) != 0:
                     self._bus.stop()
@@ -1039,8 +1040,8 @@ class SoftI2C:
         if self._bus.write((addr << 1) | 1) != 0:
             self._bus.stop()
             raise OSError("[Errno 5] EIO")
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if i == n - 1:
                 buf[i] = self._bus.read(0)
@@ -1060,12 +1061,13 @@ class SoftI2C:
         self._bus.stop()
 
     @inline
-    def write(self, buf: bytearray) -> uint8:
+    def write(self, buf: bytearray) -> uint16:
         # MicroPython: write(buf) writes buf during a manually start()/stop()-sequenced
-        # transaction. Returns the number of ACKs received.
-        acks: uint8 = 0
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        # transaction. Returns the number of ACKs received -- one per byte, so a buffer
+        # longer than 255 needs a count wider than a byte to report it.
+        acks: uint16 = 0
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if self._bus.write(buf[i]) == 0:
                 acks = acks + 1
@@ -1075,8 +1077,8 @@ class SoftI2C:
     @inline
     def readinto(self, buf: bytearray, nack: uint8 = 1):
         # MicroPython: readinto(buf, nack=True, /).
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if i == n - 1 and nack:
                 buf[i] = self._bus.read(0)
@@ -1096,8 +1098,8 @@ class SoftI2C:
         if self._bus.write(memaddr) != 0:
             self._bus.stop()
             raise OSError("[Errno 5] EIO")
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if self._bus.write(buf[i]) != 0:
                 self._bus.stop()
@@ -1122,8 +1124,8 @@ class SoftI2C:
         if self._bus.write((addr << 1) | 1) != 0:
             self._bus.stop()
             raise OSError("[Errno 5] EIO")
-        i: uint8 = 0
-        n: uint8 = len(buf)
+        i: uint16 = 0
+        n: uint16 = len(buf)
         while i < n:
             if i == n - 1:
                 buf[i] = self._bus.read(0)
