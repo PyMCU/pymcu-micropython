@@ -14,7 +14,9 @@
   A format that is a compile-time constant, which is what every driver passes, folds the
   format ladder away and the unused arms cost nothing. `poly()`, a run-time text string and
   the tuple form of `blit()`'s source are refused with diagnostics that name the
-  alternative; see `docs/limitations.md`.
+  alternative, and `ellipse()` is refused too while PyMCU/PyMCU#510 is
+  open: it is implemented and correct, but a program whose only call to it is one call gets
+  it inlined and the inlined filled walk writes the wrong pixels without saying so. See `docs/limitations.md`.
 
 ### Fixed
 

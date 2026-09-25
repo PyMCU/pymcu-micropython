@@ -23,7 +23,7 @@
 
 from typing import Optional
 
-from pymcu.types import inline, const, int16, uint16
+from pymcu.types import inline, const, int16, int32, uint16
 from pymcu.exceptions import CompileError as _CompileError
 
 # Format constants, upstream's values (extmod/modframebuf.c).
@@ -339,77 +339,22 @@ class FrameBuffer:
             cx = cx + 1
 
     # -- ellipse ---------------------------------------------------------
-
+    #
+    # Withheld, not missing, and the diagnostic says so. The implementation is
+    # upstream's two-pass integer walk and it draws what the interpreter draws
+    # -- under CPython, and on the board whenever the program calls ellipse()
+    # from more than one place. With a single call site the compiler inlines
+    # the method instead of emitting _bound_fb_ellipse as a subroutine, and the
+    # inlined expansion of the FILLED walk writes different pixels: 11 bytes of
+    # 256 for ellipse(30, 15, 10, 8, 1, True) on a 64x32 MONO_VLSB buffer, with
+    # nothing said. PyMCU/PyMCU#510 carries the reproduction and the controls.
+    #
+    # Drawing almost the right ellipse without saying so is the one outcome
+    # worth refusing, so this refuses until the inliner is fixed. Reverting the
+    # commit that added this brings the implementation back.
+    @inline
     def ellipse(self, x: int16, y: int16, xr: int16, yr: int16, c: uint16, f: bool = False, m: Optional[int16] = None):
-        # Upstream takes the whole-ellipse mask when m is not given.
-        quadrants: int16 = 15
-        if m is not None:
-            quadrants = m
-        mask: int16 = quadrants & 0x0F
-        if f:
-            mask = mask | 0x10
-        if xr == 0 and yr == 0:
-            if mask & 0x0F:
-                self._pixel_set(x, y, c)
-            return
-        two_asquare: int16 = 2 * xr * xr
-        two_bsquare: int16 = 2 * yr * yr
-        ex: int16 = xr
-        ey: int16 = 0
-        xchange: int16 = yr * yr * (1 - 2 * xr)
-        ychange: int16 = xr * xr
-        err: int16 = 0
-        stoppingx: int16 = two_bsquare * xr
-        stoppingy: int16 = 0
-        while stoppingx >= stoppingy:
-            self._ellipse_points(x, y, ex, ey, c, mask)
-            ey = ey + 1
-            stoppingy = stoppingy + two_asquare
-            err = err + ychange
-            ychange = ychange + two_asquare
-            if (2 * err + xchange) > 0:
-                ex = ex - 1
-                stoppingx = stoppingx - two_bsquare
-                err = err + xchange
-                xchange = xchange + two_bsquare
-        ex = 0
-        ey = yr
-        xchange = yr * yr
-        ychange = xr * xr * (1 - 2 * yr)
-        err = 0
-        stoppingx = 0
-        stoppingy = two_asquare * yr
-        while stoppingx <= stoppingy:
-            self._ellipse_points(x, y, ex, ey, c, mask)
-            ex = ex + 1
-            stoppingx = stoppingx + two_bsquare
-            err = err + xchange
-            xchange = xchange + two_bsquare
-            if (2 * err + ychange) > 0:
-                ey = ey - 1
-                stoppingy = stoppingy - two_asquare
-                err = err + ychange
-                ychange = ychange + two_asquare
-
-    def _ellipse_points(self, cx: int16, cy: int16, x: int16, y: int16, col: uint16, mask: int16):
-        if mask & 0x10:
-            if mask & 0x01:
-                self._fill_rect_clipped(cx, cy - y, x + 1, 1, col)
-            if mask & 0x02:
-                self._fill_rect_clipped(cx - x, cy - y, x + 1, 1, col)
-            if mask & 0x04:
-                self._fill_rect_clipped(cx - x, cy + y, x + 1, 1, col)
-            if mask & 0x08:
-                self._fill_rect_clipped(cx, cy + y, x + 1, 1, col)
-        else:
-            if mask & 0x01:
-                self._pixel_set(cx + x, cy - y, col)
-            if mask & 0x02:
-                self._pixel_set(cx - x, cy - y, col)
-            if mask & 0x04:
-                self._pixel_set(cx - x, cy + y, col)
-            if mask & 0x08:
-                self._pixel_set(cx + x, cy + y, col)
+        raise _CompileError("framebuf.FrameBuffer.ellipse is withheld while PyMCU/PyMCU#510 is open. Nothing is wrong with your program: the walk is implemented and it draws what MicroPython draws, but when ellipse() is the only call to ellipse() in the program the compiler inlines it, and the inlined filled walk writes the wrong pixels without saying so, so this refuses rather than draw almost the right ellipse. Draw the outline with framebuf.FrameBuffer.line, or fill the rows with framebuf.FrameBuffer.hline. A second call to ellipse() anywhere in the program does make the first one correct, which is worth knowing but is not something a library should ask of you.")
 
     # -- blit ------------------------------------------------------------
 
@@ -516,6 +461,12 @@ class FrameBuffer1(FrameBuffer):
 #   at run time; this compiler has no run-time string iteration, so the walk is
 #   unrolled at compile time. A string only known at run time is refused by the
 #   compiler, naming the loop, rather than drawing something else.
+#
+# ellipse() is refused while PyMCU/PyMCU#510 is open, and the refusal says so.
+#   The walk is implemented and matches the interpreter, but with a single call
+#   site in the program the compiler inlines it and the inlined filled walk
+#   writes the wrong pixels. Refusing beats drawing almost the right ellipse in
+#   silence.
 #
 # poly() is refused. The outline walk indexes an array of coordinates at run
 #   time and the filled walk needs one array of scan-line crossings per

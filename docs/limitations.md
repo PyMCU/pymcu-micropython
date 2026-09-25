@@ -32,6 +32,18 @@ any string at run time; the compiler has no run-time string iteration, so the wa
 unrolled while compiling. A string that differs between paths is refused, naming the loop,
 instead of drawing something else.
 
+`FrameBuffer.ellipse()` is refused while PyMCU/PyMCU#510 is open, and the refusal says so. The walk is
+implemented and draws what the interpreter draws -- under CPython, and on the board
+whenever the program calls `ellipse()` from more than one place. With a single call site
+the compiler inlines the method instead of emitting it as a subroutine, and the inlined
+filled walk writes different pixels: 11 bytes of 256 for
+`ellipse(30, 15, 10, 8, 1, True)` on a 64x32 MONO_VLSB buffer, with nothing said. The
+other ten primitives were each measured with a single call site and are correct. Drawing
+almost the right ellipse in silence is worse than refusing, so this refuses until the
+inliner is fixed, and the diagnostic names the issue and the workaround;
+`tests/framebuf/withheld/` keeps the probe and the interpreter's output
+for the day it is lifted.
+
 `FrameBuffer.poly()` is refused with a diagnostic. Its outline walk indexes an array of
 coordinates at run time and its filled walk needs one array of scan-line crossings per
 polygon, sized at run time, and there is no heap to size it in. `FrameBuffer.line()` draws
