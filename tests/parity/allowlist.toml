@@ -7,6 +7,63 @@
 #     PyMCU/pymcu-micropython. No `quote` is required: there is no design rationale to
 #     quote, only an issue to point at. `reason` names the issue.
 
+# -- framebuf --------------------------------------------------------------
+#
+# Every drawing method of the C module is positional-only, and a `/` in a def is
+# syntax the C# front end refuses ('SyntaxError: Expected parameter name'), so the
+# whole surface differs from the stub by that marker and by nothing else: the
+# parameter names, their order and their defaults all match. Same gap and same
+# issue as machine.Pin.irq.
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.blit"
+status = "tracked:#19"
+reason = "Upstream declares blit() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.fill"
+status = "tracked:#19"
+reason = "Upstream declares fill() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.hline"
+status = "tracked:#19"
+reason = "Upstream declares hline() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.line"
+status = "tracked:#19"
+reason = "Upstream declares line() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.pixel"
+status = "tracked:#19"
+reason = "Upstream declares pixel() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.poly"
+status = "tracked:#19"
+reason = "Upstream declares poly() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.rect"
+status = "tracked:#19"
+reason = "Upstream declares rect() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.scroll"
+status = "tracked:#19"
+reason = "Upstream declares scroll() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.text"
+status = "tracked:#19"
+reason = "Upstream declares text() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
+
+[[deviation]]
+symbol = "framebuf.FrameBuffer.vline"
+status = "tracked:#19"
+reason = "Upstream declares vline() positional-only; a `/` in a def is syntax the compiler lacks, and that marker is the only difference. Tracked by PyMCU/pymcu-micropython#19."
 # -- machine ---------------------------------------------------------------
 
 [[deviation]]

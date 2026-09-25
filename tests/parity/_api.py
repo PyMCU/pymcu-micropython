@@ -19,6 +19,7 @@ ALLOWLIST_PATH = ROOT / "tests" / "parity" / "allowlist.toml"
 DOC_PATHS = [ROOT / "README.md", *sorted((ROOT / "docs").glob("**/*"))]
 
 MODULES = [
+    "framebuf",
     "machine",
     "micropython",
     "network",
