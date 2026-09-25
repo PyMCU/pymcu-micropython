@@ -18,6 +18,46 @@ control.
 this class of AVR chip, so `rp2.PIO`, `rp2.StateMachine`, `rp2.DMA` and the module-level `rp2`
 helpers are not implemented.
 
+## framebuf
+
+`framebuf` is a builtin of the MicroPython interpreter, written in C
+(`extmod/modframebuf.c`), so there is no upstream Python source to vendor: this layer
+re-expresses that C module. What it draws is pinned against the real interpreter, probe by
+probe, in `tests/test_framebuf.py`: MONO_VLSB, MONO_HLSB, MONO_HMSB, GS2_HMSB, GS4_HMSB,
+GS8 and RGB565, with the clipping, the per-format stride rounding and the out-of-bounds
+answers. The buffer stays the caller's, as upstream: a `FrameBuffer` never allocates.
+
+`FrameBuffer.text()` takes a string known at compile time. Upstream walks the characters of
+any string at run time; the compiler has no run-time string iteration, so the walk is
+unrolled while compiling. A string that differs between paths is refused, naming the loop,
+instead of drawing something else.
+
+`FrameBuffer.poly()` is refused with a diagnostic. Its outline walk indexes an array of
+coordinates at run time and its filled walk needs one array of scan-line crossings per
+polygon, sized at run time, and there is no heap to size it in. `FrameBuffer.line()` draws
+the edges.
+
+`FrameBuffer.blit()` takes a `FrameBuffer`, never the `(buffer, width, height, format[,
+stride])` tuple upstream also accepts as the source.
+
+The constructor refuses at compile time what upstream refuses with a `ValueError` at run
+time: a width or height below 1, a stride below width, an unknown format. Raising needs a
+heap, so the check has to happen while the sizes are still constants. It does **not** check
+the buffer against the geometry the way upstream does, because `len()` of a `bytearray`
+parameter has no lowering: a buffer too small for its width, height and format is written
+past its end.
+
+Every index is computed in 16 bits, so the addressable buffer stops at 32767 bytes. That
+covers every mono display and every small colour one; a 320x240 RGB565 frame is past it.
+
+`FrameBuffer1` is a subclass of `FrameBuffer` here and a factory function upstream, so
+`type()` answers differently and nothing that draws does.
+
+Every drawing method is positional-only upstream. A `/` in a `def` is syntax the compiler
+refuses, so the whole surface differs from the stub by that marker and by nothing else:
+the parameter names, their order and their defaults all match. Tracked by
+PyMCU/pymcu-micropython#19, the same gap as `machine.Pin.irq`.
+
 ## machine.ADC attenuation and resolution
 
 `machine.ADC`'s attenuation (`ATTN_*`) and resolution (`WIDTH_*`) controls, its `CORE_TEMP`,

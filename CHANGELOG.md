@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### New
+
+- **framebuf**: the module MicroPython keeps in C, re-expressed for this layer.
+  `FrameBuffer(buffer, width, height, format[, stride])` and `FrameBuffer1` over a
+  caller-owned `bytearray`, with `fill`, `fill_rect`, `pixel`, `hline`, `vline`, `rect`,
+  `line`, `ellipse`, `text`, `scroll` and `blit` in MONO_VLSB, MONO_HLSB, MONO_HMSB,
+  GS2_HMSB, GS4_HMSB, GS8 and RGB565. What it draws is pinned byte for byte against the
+  real interpreter running the same programs (`tests/test_framebuf.py`), and the same
+  probes are run as compiled AVR firmware on the emulated Uno in the `pymcu-avr` checkout.
+  A format that is a compile-time constant, which is what every driver passes, folds the
+  format ladder away and the unused arms cost nothing. `poly()`, a run-time text string and
+  the tuple form of `blit()`'s source are refused with diagnostics that name the
+  alternative; see `docs/limitations.md`.
+
 ### Fixed
 
 - **machine**: `I2C` and `SoftI2C` `writeto`, `readfrom`, `readfrom_into`,

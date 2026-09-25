@@ -14,6 +14,7 @@ MicroPython standard-library flavor for **PyMCU** — an AOT (ahead-of-time) Pyt
 | `utime` | `utime` / `time` | `sleep_ms()`, `sleep_us()`, `sleep()`, `ticks_ms()`, `ticks_us()`, `ticks_diff()`, `ticks_add()` |
 | `micropython` | `micropython` | `const()`, `@native`, `@viper` stubs |
 | `os` | `os` / `uos` | `uname()` only -- compile-time port facts (see below) |
+| `framebuf` | `framebuf` | `FrameBuffer`, `FrameBuffer1` over a caller-owned `bytearray`: `fill`, `pixel`, `hline`, `vline`, `line`, `rect`, `fill_rect`, `ellipse`, `text`, `scroll`, `blit`, in every upstream format |
 | `sys` | `sys` / `usys` | `implementation`, `platform`, `version`, `version_info`, `byteorder`, `maxsize` -- compile-time port facts (see below) |
 
 ## Installation
