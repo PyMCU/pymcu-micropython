@@ -387,6 +387,12 @@ def _adc_channel_port(channel: const[uint8]) -> str:
             return "PC4"
         case 5:
             return "PC5"
+        case _:
+            # Unreachable: ADC.__init__ refuses a channel above 5 before calling this.
+            # The compiler decides "every path returns" from the match alone, and a match
+            # with no `case _:` has a path that falls out of the bottom -- so ADC(0), with
+            # the channel a compile-time constant, was refused inside this function.
+            raise _CompileError("machine.ADC: this chip has ADC channels 0-5 (A0-A5); use ADC(0)..ADC(5) or ADC(Pin(14))..ADC(Pin(19)).")
 
 
 class ADC:
