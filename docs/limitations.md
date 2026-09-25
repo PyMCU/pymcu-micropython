@@ -153,6 +153,31 @@ MicroPython's own stub file marks `PWM.init()`'s `freq`, `duty_u16`, `duty_ns` a
 keyword defaults as `...` (implementation-defined); this layer's concrete `0` defaults are the
 actual values applied when a keyword is omitted.
 
+## How long an I2C or SPI transfer may be
+
+A transfer may be as long as the buffer, up to 65535 bytes. It used to be capped at 255
+without saying so: the byte count travelled from `machine.I2C.writeto` through the HAL in
+an 8-bit parameter, so a transfer of `len & 0xFF` bytes went out. 255 arrived whole, **256
+sent nothing at all**, 300 sent forty-four and the 513 bytes of an SSD1306 frame sent one.
+Nothing was reported, on the bus or while compiling, because the count is a folded `len()`
+rather than a literal and the compiler's narrowing refusal only inspects literals.
+
+The **write** paths are checked on the wire, at 255, 256, 300 and 513 bytes for I2C and at
+255, 256 and 300 for SPI, under both front ends
+(`tests/integration/fixtures/i2c-write-long` and `spi-write-long` in the `pymcu-avr`
+checkout).
+
+The **read** paths carry the same count and were widened with the writes, but they are
+**not verified**: asserting a read longer than 255 bytes needs a slave script the emulator's
+recorder does not offer yet. Treat them as widened, not as measured.
+
+`machine.I2C.write` and `machine.I2C.readinto`, the raw primitives used between an explicit
+`start()` and `stop()`, still count in eight bits. Use `writeto` for anything longer than
+255 bytes until that is fixed.
+
+The CircuitPython layer never had this: its `busio` carries its own 16-bit loop instead of
+sharing this HAL path.
+
 ## Reading a variable amount of data with no heap
 
 `machine.I2C.readfrom_mem(addr, memaddr, nbytes)` returns a freshly-allocated `bytes` object
