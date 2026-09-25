@@ -299,7 +299,7 @@ def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint32 = 1000000) ->
 
 class UART:
     @inline
-    def __init__(self, id: const[uint8] = 0, baudrate: uint16 = 9600):
+    def __init__(self, id: const[uint8] = 0, baudrate: uint32 = 9600):
         # This chip has one USART. Silently configuring USART0 for a UART(1, ...)
         # would leave the caller wiring the wrong pins and blaming the hardware.
         if id != 0:
