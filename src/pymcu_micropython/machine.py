@@ -746,19 +746,25 @@ class SoftSPI:
 
 class I2C:
     @inline
-    def __init__(self, id: const[uint8] = 0, scl=None, sda=None, freq: const[uint32] = 100000):
-        # The TWI pins are fixed in silicon (PC5=SCL, PC4=SDA) and the bus runs at
-        # 100 kHz. Accepting scl/sda/freq and ignoring them is the worst outcome for
-        # someone porting code: it builds, and the bus is simply not what they asked for.
+    def __init__(self, id: const[uint8] = 0, *, scl: Pin = None, sda: Pin = None,
+                 freq: const[uint32] = 100000, timeout: const[uint32] = 50000):
+        # MicroPython: I2C(id, *, scl, sda, freq=400000, timeout=50000). The TWI pins are
+        # fixed in silicon (PC5 = SCL, PC4 = SDA), so scl=/sda= are accepted when they
+        # name those pins -- I2C(0, scl=Pin(19), sda=Pin(18)) on an Uno, the way a port
+        # spells its bus -- and refused by name when they name any other. freq programs
+        # the bit-rate register (the HAL refuses what the TWI cannot reach). The bus
+        # timeout is the HAL's own fixed guard, so only the default is accepted.
         if id != 0:
             raise _CompileError("machine.I2C: this chip has a single TWI bus; id must be 0.")
         if scl is not None:
-            raise _CompileError("machine.I2C: the TWI pins are fixed on this chip (PC5 = SCL); drop the scl argument.")
+            if scl._name != "PC5":
+                raise _CompileError("machine.I2C: the TWI pins are fixed on this chip; SCL is PC5 (Pin(19) on an Uno). Use SoftI2C to pick your own pins.")
         if sda is not None:
-            raise _CompileError("machine.I2C: the TWI pins are fixed on this chip (PC4 = SDA); drop the sda argument.")
-        if freq != 100000:
-            raise _CompileError("machine.I2C: only 100000 Hz is supported on this chip; drop the freq argument.")
-        self._i2c = _I2C()
+            if sda._name != "PC4":
+                raise _CompileError("machine.I2C: the TWI pins are fixed on this chip; SDA is PC4 (Pin(18) on an Uno). Use SoftI2C to pick your own pins.")
+        if timeout != 50000:
+            raise _CompileError("machine.I2C: the bus timeout is fixed on this chip; drop the timeout argument.")
+        self._i2c = _I2C(0, 0, freq)
 
     @inline
     def scan(self) -> uint8:

@@ -401,6 +401,30 @@ def test_i2c_instantiation():
     assert i2c is not None
 
 
+def test_i2c_accepts_the_fixed_twi_pins_and_a_frequency():
+    # Upstream: I2C(id, *, scl, sda, freq=400000). The TWI pins are fixed, so
+    # naming them is accepted; the frequency reaches the HAL's bit-rate register.
+    i2c = I2C(0, scl=Pin(19), sda=Pin(18), freq=400000)
+    assert i2c._i2c.freq == 400000
+
+
+def test_i2c_refuses_scl_or_sda_on_other_pins():
+    with pytest.raises(CompileError, match="SCL is PC5"):
+        I2C(0, scl=Pin(5), sda=Pin(18))
+    with pytest.raises(CompileError, match="SDA is PC4"):
+        I2C(0, scl=Pin(19), sda=Pin(5))
+
+
+def test_i2c_scl_and_sda_are_keyword_only():
+    with pytest.raises(TypeError):
+        I2C(0, Pin(19), Pin(18))
+
+
+def test_i2c_refuses_a_timeout_it_cannot_honour():
+    with pytest.raises(CompileError, match="timeout"):
+        I2C(0, timeout=1000)
+
+
 def test_i2c_writeto():
     i2c = I2C()
     i2c.writeto(0x68, 0x00)

@@ -108,9 +108,10 @@ def _install_hal_mocks() -> None:
         DATA_ACK  = 0x28
         SLA_R_ACK = 0x40
 
-        def __init__(self):
+        def __init__(self, addr=0, general_call=0, freq=100000, pullups=True):
             # Test knobs: 7-bit addresses that NACK their SLA, a flag that NACKs
             # every data byte after an acknowledged address, and a wedged START.
+            self.freq = freq
             self.nack: set = set()
             self.nack_data = False
             self.fail_start = False
@@ -266,6 +267,8 @@ def _install_hal_mocks() -> None:
             return f"PD{n}"
         if n < 14:
             return f"PB{n - 8}"
+        if n < 20:
+            return f"PC{n - 14}"   # A0-A5, as the Uno table in the HAL has them
         raise CompileError(f"pin {n} is not a pin of this board")
 
     _reg("avr.gpio", board_pin_name=_board_pin_name)
