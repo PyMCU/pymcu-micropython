@@ -1,6 +1,13 @@
 # Changelog — pymcu-micropython
 
-## Unreleased
+## 0.1.0b1 (re-frozen from main, 2026-09-26)
+
+This layer was out of scope for the 2026-09-15 freeze. It publishes in beta 1
+after all, because what landed since then is not polish: a UART asking for
+115200 was getting 50000, a byte count could not hold a buffer past 255, and
+`framebuf` did not exist. The `pymcu-stdlib` floor moved with it, from
+`0.1.0a10` to `0.1.0b1`, since the module leans on compiler behaviour that
+only b1 has.
 
 ### New
 
