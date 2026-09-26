@@ -654,6 +654,20 @@ class PWM:
 # SPI
 # ---------------------------------------------------------------------------
 
+@inline
+def _spi_check_pins(sck: Pin, mosi: Pin, miso: Pin):
+    # The hardware SPI's pins are fixed: naming them is accepted, any other is refused.
+    if sck is not None:
+        if sck._name != "PB5":
+            raise _CompileError("machine.SPI: the SPI pins are fixed on this chip; SCK is PB5 (Pin(13) on an Uno). Use SoftSPI to pick your own pins.")
+    if mosi is not None:
+        if mosi._name != "PB3":
+            raise _CompileError("machine.SPI: the SPI pins are fixed on this chip; MOSI is PB3 (Pin(11) on an Uno). Use SoftSPI to pick your own pins.")
+    if miso is not None:
+        if miso._name != "PB4":
+            raise _CompileError("machine.SPI: the SPI pins are fixed on this chip; MISO is PB4 (Pin(12) on an Uno). Use SoftSPI to pick your own pins.")
+
+
 class SPI:
     # Bit-order constants -- the rp2 port's own values, measured on real
     # firmware. The stub's CONTROLLER is declared but never defined on rp2
@@ -665,20 +679,20 @@ class SPI:
     def __init__(self, id: const[uint8] = 0, baudrate: const[uint32] = 1000000, *,
                  polarity: const[uint8] = 0, phase: const[uint8] = 0,
                  bits: const[uint8] = 8, firstbit: const[uint8] = 1,
-                 sck: const = None, mosi: const = None, miso: const = None):
+                 sck: Pin = None, mosi: Pin = None, miso: Pin = None):
         # MicroPython: SPI(id, baudrate=1_000_000, polarity=0, phase=0, bits=8,
         # firstbit=SPI.MSB, sck=None, mosi=None, miso=None). This chip has a single SPI
-        # bus with fixed hardware pins (SCK=PB5, MOSI=PB3, MISO=PB4); sck=/mosi=/miso=
-        # are refused by name instead of silently ignored -- use SoftSPI to pick your
-        # own pins. baudrate/polarity/phase/firstbit reprogram the real SPCR/SPSR
-        # registers via the HAL, which already took all four; only forwarding them was
-        # missing.
+        # bus with fixed hardware pins (SCK=PB5, MOSI=PB3, MISO=PB4), so sck=/mosi=/miso=
+        # are accepted when they name those pins -- SPI(0, sck=Pin(13), mosi=Pin(11),
+        # miso=Pin(12)) on an Uno -- and refused by name when they name any other; use
+        # SoftSPI to pick your own. They were typed const, so passing a Pin at all
+        # failed with a message about constants. baudrate/polarity/phase/firstbit
+        # reprogram the real SPCR/SPSR registers via the HAL.
         if id != 0:
             raise _CompileError("machine.SPI: this chip has a single SPI bus; id must be 0.")
         if bits != 8:
             raise _CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
-        if sck is not None or mosi is not None or miso is not None:
-            raise _CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
+        _spi_check_pins(sck, mosi, miso)
         # Calls the HAL with firstbit's own value or a literal, never a variable
         # reassigned from it: a const parameter reassigned through a branch stops
         # being a compile-time constant to this compiler.
@@ -690,12 +704,11 @@ class SPI:
     @inline
     def init(self, baudrate: const[uint32] = 1000000, *, polarity: const[uint8] = 0,
              phase: const[uint8] = 0, bits: const[uint8] = 8, firstbit: const[uint8] = 1,
-             sck: const = None, mosi: const = None, miso: const = None):
+             sck: Pin = None, mosi: Pin = None, miso: Pin = None):
         # Reprogram a bus that is already running (MicroPython standard).
         if bits != 8:
             raise _CompileError("machine.SPI: this chip's SPI shifts a fixed 8-bit frame; bits=8 only.")
-        if sck is not None or mosi is not None or miso is not None:
-            raise _CompileError("machine.SPI: SCK/MOSI/MISO are fixed on this chip (PB5/PB3/PB4); drop sck=/mosi=/miso=, or use SoftSPI to pick your own pins.")
+        _spi_check_pins(sck, mosi, miso)
         if firstbit == SPI.LSB:
             self._spi.configure(baudrate, polarity, phase, 1)
         else:

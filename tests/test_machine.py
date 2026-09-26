@@ -422,10 +422,19 @@ def test_spi_constructor_rejects_other_id():
         SPI(1)
 
 
-def test_spi_constructor_rejects_sck_mosi_miso():
-    # This chip's SPI pins are fixed; sck=/mosi=/miso= are refused by name.
-    with pytest.raises(CompileError):
+def test_spi_constructor_rejects_sck_mosi_miso_on_other_pins():
+    # This chip's SPI pins are fixed; naming another pin is refused by name.
+    with pytest.raises(CompileError, match="SCK is PB5"):
         SPI(sck=Pin(2))
+    with pytest.raises(CompileError, match="MISO is PB4"):
+        SPI(0, miso=Pin(10))
+
+
+def test_spi_constructor_accepts_its_own_pins():
+    # The way a port spells its bus: SPI(0, sck=Pin(13), mosi=Pin(11), miso=Pin(12)).
+    # These were typed const, so a Pin failed with a message about constants.
+    SPI(0, baudrate=1_000_000, sck=Pin(13), mosi=Pin(11), miso=Pin(12))
+    SPI(0).init(500000, sck=Pin(13))
 
 
 def test_spi_init_reconfigures():
