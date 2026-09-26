@@ -237,6 +237,15 @@ def test_adc_has_read_methods():
     assert callable(adc.read_u16)
 
 
+def test_adc_read_u16_full_scale_is_65535(monkeypatch):
+    # Upstream scales raw << (16 - bits) | raw >> (2 * bits - 16); a 10-bit
+    # 1023 is 65535, not the 65472 that raw * 64 gave.
+    adc = ADC(0)
+    for raw, want in ((1023, 65535), (0, 0), (512, 32800), (1, 64)):
+        monkeypatch.setattr(ADC, "_raw_read", lambda self, r=raw: r)
+        assert adc.read_u16() == want
+
+
 # ── PWM ───────────────────────────────────────────────────────────────────  #
 
 def test_pwm_instantiation():

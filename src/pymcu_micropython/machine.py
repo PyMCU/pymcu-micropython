@@ -452,8 +452,12 @@ class ADC:
         # MicroPython-style 16-bit read (0-65535, scaled from 10-bit) -- the
         # only ADC read the rp2 port exposes; there is no 0..1023 read().
         self._adc.start()
+        # Scaled the way the rp2 port scales its 12-bit reading, raw << (16 - bits) |
+        # raw >> (2 * bits - 16): the top bits are copied into the bottom ones, so full
+        # scale is 65535 and zero is 0. raw * 64 stopped at 65472. The two halves share no
+        # bits, so + is the same |, and it is 8 bytes smaller here.
         raw: uint16 = self._raw_read()
-        return raw * 64    # scale 0-1023 to 0-65472 (approx 0-65535)
+        return raw * 64 + (raw >> 4)
 
 
 # ---------------------------------------------------------------------------
