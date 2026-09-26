@@ -318,6 +318,22 @@ def test_pwm_instantiation():
     assert pwm is not None
 
 
+def test_pwm_freq_setter_retunes_and_keeps_the_duty():
+    # Upstream: PWM(pin) then pwm.freq(50) is how servo drivers start; freq()
+    # keeps duty_u16. It used to be refused on a Timer1 pin.
+    pwm = PWM(Pin(9))
+    pwm.duty_u16(4915)
+    pwm._pwm.calls.clear()
+    pwm.freq(50)
+    assert pwm._pwm.calls == [("freq", 50), ("duty_u16", 4915)]
+    assert pwm.freq() == 50 and pwm.duty_u16() == 4915
+
+
+def test_pwm_freq_zero_is_a_value_error():
+    with pytest.raises(ValueError, match="freq too small"):
+        PWM(Pin(9)).freq(0)
+
+
 def test_pwm_init_deinit():
     pwm = PWM(Pin(6, Pin.OUT))
     pwm.init()

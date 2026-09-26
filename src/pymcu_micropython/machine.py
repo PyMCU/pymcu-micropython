@@ -606,8 +606,15 @@ class PWM:
 
     @inline
     def freq(self, value: uint16):
+        # MicroPython: freq(value) retunes the channel and keeps its duty_u16, so the duty
+        # is set again against the new period. A Timer1 channel (D9/D10) takes any
+        # frequency, including one that arrives at run time; the 8-bit timers' channels
+        # run at the nearest of their prescaler buckets. Zero is upstream's ValueError.
+        if value == 0:
+            raise ValueError("freq too small")
         self._freq = value
         self._pwm.set_freq(value)
+        self._pwm.set_duty_u16(self._duty)
 
     @inline
     def duty_u16(self) -> uint16:

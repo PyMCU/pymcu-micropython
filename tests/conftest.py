@@ -86,12 +86,14 @@ def _install_hal_mocks() -> None:
         def read(self):          return 0
 
     class _MockPWM:
-        def __init__(self, pin, duty=0, freq=1000, invert=0, duty_u16=0): pass
+        # Records the calls the layer makes, in order.
+        def __init__(self, pin, duty=0, freq=1000, invert=0, duty_u16=0):
+            self.calls = []
         def start(self):          pass
         def stop(self):           pass
         def set_duty(self, d):    pass
-        def set_duty_u16(self, d): pass
-        def set_freq(self, f):    pass
+        def set_duty_u16(self, d): self.calls.append(("duty_u16", d))
+        def set_freq(self, f):    self.calls.append(("freq", f))
 
     class _MockSPI:
         def __init__(self, mode=0, cs="", baudrate=4000000, polarity=0, phase=0, lsb_first=0): pass
