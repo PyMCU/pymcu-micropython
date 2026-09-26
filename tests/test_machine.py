@@ -430,6 +430,28 @@ def test_i2c_writeto():
     i2c.writeto(0x68, 0x00)
 
 
+def test_i2c_writevto_writes_the_vector_as_one_transaction():
+    # Upstream: writevto(addr, vector, stop=True, /) -- the buffers of vector
+    # back to back after one START and address; returns the ACK count.
+    i2c = I2C()
+    sent = []
+    real_write = i2c._i2c.write
+    def write(data):
+        sent.append(data)
+        return real_write(data)
+    i2c._i2c.write = write
+    assert i2c.writevto(0x3C, (bytearray(b"\x40"), bytearray(b"\x01\x02"))) == 3
+    assert sent == [0x3C << 1, 0x40, 0x01, 0x02]
+    i2c._i2c.nack.add(0x3D)
+    with pytest.raises(OSError):
+        i2c.writevto(0x3D, [bytearray(1)])
+
+
+def test_softi2c_writevto_counts_acks():
+    i2c = SoftI2C(Pin(5, Pin.OUT), Pin(4, Pin.OUT))
+    assert i2c.writevto(0x3C, (bytearray(2), bytearray(1))) == 3
+
+
 def test_i2c_readfrom_returns_nbytes():
     # Upstream: readfrom(addr, nbytes, stop=True, /) returns nbytes. It used to
     # be refused as needing a heap.

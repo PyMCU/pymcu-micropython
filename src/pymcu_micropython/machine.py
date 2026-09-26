@@ -842,6 +842,59 @@ class I2C:
                 i = i + 1
 
     @inline
+    def _writevto_part(self, part) -> uint16:
+        # One buffer of a writevto() vector, inside the transaction writevto opened.
+        i: uint16 = 0
+        n: uint16 = len(part)
+        while i < n:
+            if self._i2c.write(part[i]) != _I2C.DATA_ACK:
+                self._i2c.stop()
+                raise OSError("[Errno 5] EIO")
+            i = i + 1
+        return n
+
+    @inline
+    def writevto(self, addr: uint8, vector, stop: uint8 = 1) -> uint16:
+        # MicroPython: writevto(addr, vector, stop=True, /) writes every buffer of
+        # vector, in order, as one transaction -- one START and one address, then the
+        # bytes of each buffer back to back -- and returns the number of ACKs. The
+        # SSD1306 driver sends its data prefix and the framebuffer this way. A NACK
+        # raises OSError EIO like writeto. stop=False holds the bus for a repeated START.
+        #
+        # The vector is walked by literal index because `for part in vector` over a
+        # sequence of buffers is refused by the compiler (it walks sequences of integer
+        # constants only). Eight buffers is the most this spells out; more is refused.
+        if len(vector) > 8:
+            raise _CompileError("machine.I2C.writevto: at most 8 buffers in the vector on this target.")
+        st: uint8 = self._i2c.start()
+        if st != _I2C.START and st != _I2C.RESTART:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
+        if self._i2c.write(addr << 1) != _I2C.SLA_ACK:
+            self._i2c.stop()
+            raise OSError("[Errno 5] EIO")
+        acks: uint16 = 0
+        if len(vector) > 0:
+            acks = acks + self._writevto_part(vector[0])
+        if len(vector) > 1:
+            acks = acks + self._writevto_part(vector[1])
+        if len(vector) > 2:
+            acks = acks + self._writevto_part(vector[2])
+        if len(vector) > 3:
+            acks = acks + self._writevto_part(vector[3])
+        if len(vector) > 4:
+            acks = acks + self._writevto_part(vector[4])
+        if len(vector) > 5:
+            acks = acks + self._writevto_part(vector[5])
+        if len(vector) > 6:
+            acks = acks + self._writevto_part(vector[6])
+        if len(vector) > 7:
+            acks = acks + self._writevto_part(vector[7])
+        if stop:
+            self._i2c.stop()
+        return acks
+
+    @inline
     def readfrom(self, addr: uint8, nbytes: const[uint16], stop: uint8 = 1) -> bytearray:
         # MicroPython: readfrom(addr, nbytes, stop=True, /) returns nbytes read from the
         # peripheral. There is no heap, but an @inline method's locals live in the
@@ -1040,6 +1093,47 @@ class SoftI2C:
                     self._bus.stop()
                     raise OSError("[Errno 5] EIO")
                 i = i + 1
+
+    @inline
+    def _writevto_part(self, part) -> uint16:
+        i: uint16 = 0
+        n: uint16 = len(part)
+        while i < n:
+            if self._bus.write(part[i]) != 0:
+                self._bus.stop()
+                raise OSError("[Errno 5] EIO")
+            i = i + 1
+        return n
+
+    @inline
+    def writevto(self, addr: uint8, vector, stop: uint8 = 1) -> uint16:
+        # MicroPython: writevto(addr, vector, stop=True, /). See I2C.writevto.
+        if len(vector) > 8:
+            raise _CompileError("machine.SoftI2C.writevto: at most 8 buffers in the vector on this target.")
+        self._bus.start()
+        if self._bus.write(addr << 1) != 0:
+            self._bus.stop()
+            raise OSError("[Errno 5] EIO")
+        acks: uint16 = 0
+        if len(vector) > 0:
+            acks = acks + self._writevto_part(vector[0])
+        if len(vector) > 1:
+            acks = acks + self._writevto_part(vector[1])
+        if len(vector) > 2:
+            acks = acks + self._writevto_part(vector[2])
+        if len(vector) > 3:
+            acks = acks + self._writevto_part(vector[3])
+        if len(vector) > 4:
+            acks = acks + self._writevto_part(vector[4])
+        if len(vector) > 5:
+            acks = acks + self._writevto_part(vector[5])
+        if len(vector) > 6:
+            acks = acks + self._writevto_part(vector[6])
+        if len(vector) > 7:
+            acks = acks + self._writevto_part(vector[7])
+        if stop:
+            self._bus.stop()
+        return acks
 
     @inline
     def readfrom(self, addr: uint8, nbytes: const[uint16], stop: uint8 = 1) -> bytearray:
