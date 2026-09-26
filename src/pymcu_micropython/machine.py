@@ -1391,11 +1391,30 @@ class WDT:
 
 class Signal:
     @inline
-    def __init__(self, pin: Pin, invert: const[uint8] = 0):
-        # pin:    machine.Pin instance (must already be configured as OUT or IN).
+    def __init__(self, pin, mode: const = None, pull: const = None, *, invert: const[uint8] = 0):
+        # MicroPython: Signal(pin_obj, invert=False) wraps a Pin, and
+        # Signal(pin_arguments..., *, invert=False) builds the Pin from the arguments a
+        # Pin takes: Signal(13, Pin.OUT, invert=True). One constructor rather than an
+        # overload per shape, because a name with more than one @inline overload cannot
+        # take a keyword argument (PyMCU#447), and invert= is how both shapes are called.
+        # For the Pin-object form the second positional is upstream's invert.
         # invert: 0 = active-high (default), 1 = active-low.
-        self._pin = pin
-        self._inv = invert
+        if isinstance(pin, Pin):
+            if pull is not None:
+                raise _CompileError("machine.Signal: Signal(pin_obj, invert=False) takes at most two arguments.")
+            self._pin = pin
+            if mode is None:
+                self._inv = invert
+            else:
+                self._inv = mode
+        else:
+            if mode is None:
+                self._pin = Pin(pin)
+            elif pull is None:
+                self._pin = Pin(pin, mode)
+            else:
+                self._pin = Pin(pin, mode, pull)
+            self._inv = invert
 
     @inline
     def on(self):

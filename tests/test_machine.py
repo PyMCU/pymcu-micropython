@@ -849,6 +849,37 @@ def test_wdt_feed_multiple():
 
 # ── Signal ────────────────────────────────────────────────────────────────  #
 
+def test_signal_from_pin_arguments_builds_the_pin():
+    # Upstream: Signal(pin_arguments..., *, invert=False). Signal(13, Pin.OUT,
+    # invert=True) used to bind the Pin-object form with 13 as the pin.
+    sig = Signal(13, Pin.OUT, invert=True)
+    assert isinstance(sig._pin, Pin)
+    sig.on()
+    assert sig._pin._pin._v == 0
+    sig.off()
+    assert sig._pin._pin._v == 1
+
+
+def test_signal_from_pin_arguments_with_pull_and_name():
+    sig = Signal("PB4", Pin.IN, Pin.PULL_UP)
+    assert sig._pin._name == "PB4"
+    assert sig._inv == 0
+
+
+def test_signal_from_pin_object_takes_invert_positionally():
+    # Upstream: Signal(pin_obj, invert=False) -- the second positional is invert.
+    pin = Pin(13, Pin.OUT)
+    sig = Signal(pin, True)
+    assert sig._pin is pin
+    sig.on()
+    assert pin._pin._v == 0
+
+
+def test_signal_from_pin_object_refuses_a_third_argument():
+    with pytest.raises(CompileError):
+        Signal(Pin(13, Pin.OUT), 1, 1)
+
+
 def test_signal_instantiation_active_high():
     pin = Pin(13, Pin.OUT)
     sig = Signal(pin)
