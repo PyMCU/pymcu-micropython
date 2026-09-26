@@ -199,9 +199,8 @@ reason = "Raw I2C/SoftI2C primitive, register-style helper, or slave-mode suppor
 
 [[deviation]]
 symbol = "machine.I2C.readfrom"
-status = "documented"
-quote = "this chip has no heap to allocate one from, so this layer's"
-reason = "Documented limitation for this chip; see docs/limitations.md."
+status = "tracked:#12"
+reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
 symbol = "machine.I2C.readfrom_into"
@@ -210,9 +209,8 @@ reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); t
 
 [[deviation]]
 symbol = "machine.I2C.readfrom_mem"
-status = "documented"
-quote = "this chip has no heap to allocate one from, so this layer's"
-reason = "Documented limitation for this chip; see docs/limitations.md."
+status = "tracked:#12"
+reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
 symbol = "machine.I2C.readfrom_mem_into"
@@ -412,9 +410,8 @@ reason = "The rp2 stub declares the name but the rp2 firmware does not export it
 
 [[deviation]]
 symbol = "machine.SPI.read"
-status = "documented"
-quote = "this chip has no heap to allocate one from, so this layer's"
-reason = "Documented limitation for this chip; see docs/limitations.md."
+status = "tracked:#12"
+reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); tracked by PyMCU/pymcu-micropython#12."
 
 [[deviation]]
 symbol = "machine.SPI.readinto"

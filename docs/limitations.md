@@ -178,11 +178,20 @@ recorder does not offer yet. Treat them as widened, not as measured.
 The CircuitPython layer never had this: its `busio` carries its own 16-bit loop instead of
 sharing this HAL path.
 
-## Reading a variable amount of data with no heap
+## Reads that return a buffer
 
-`machine.I2C.readfrom_mem(addr, memaddr, nbytes)` returns a freshly-allocated `bytes` object
-of `nbytes`; this chip has no heap to allocate one from, so this layer's `readfrom_mem(addr,
-memaddr, buf, n)` takes a caller-owned buffer and a count instead, the same deviation
-`machine.SPI.read(nbytes)` and `machine.UART.readline()`'s no-argument form already carry (see
-their own docstrings) -- `readfrom_mem_into(addr, memaddr, buf)`, `SPI.readinto(buf)` and
-`UART.readline(buf)` are the faithful, buffer-based equivalents.
+`machine.I2C.readfrom(addr, nbytes)`, `machine.I2C.readfrom_mem(addr, memaddr, nbytes)` and
+`machine.SPI.read(nbytes)` (and their `SoftI2C` / `SoftSPI` twins) take upstream's
+signatures and return `nbytes` bytes. There is no heap: the methods are `@inline`, so the
+buffer they return lives in the caller's frame, and `nbytes` has to be a compile-time
+constant, which is how drivers call them (`i2c.readfrom_mem(addr, 0x75, 1)[0]`). Two
+differences remain: the result is a `bytearray`, where upstream's is an immutable `bytes`,
+and a run-time `nbytes` is refused while compiling.
+
+`readfrom_mem` used to be a PyMCU extension, `readfrom_mem(addr, memaddr, buf, n)`, so the
+upstream call did not compile. That form is gone; its caller-buffer equivalent is
+`readfrom_mem_into(addr, memaddr, buf)`.
+
+`machine.UART.read()` and the no-argument `UART.readline()` still differ: upstream returns
+however many bytes arrived before a timeout, a length a fixed-size buffer cannot carry.
+`UART.readinto(buf)` and `UART.readline(buf)` are the buffer-based equivalents.

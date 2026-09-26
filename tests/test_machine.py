@@ -328,12 +328,12 @@ def test_spi_write():
     spi.write(0xAB)
 
 
-def test_spi_read():
-    # MicroPython's SPI.read(nbytes) returns a heap-allocated bytes object;
-    # this layer refuses it at compile time and names readinto(buf).
+def test_spi_read_returns_nbytes():
+    # Upstream: read(nbytes, write=0x00) returns nbytes. It used to be refused
+    # as needing a heap; an @inline method returns a fixed-size buffer by value.
     spi = SPI()
-    with pytest.raises(CompileError, match="heap-allocated bytes"):
-        spi.read(1)
+    got = spi.read(3, 0x5A)
+    assert isinstance(got, bytearray) and len(got) == 3
 
 
 def test_spi_write_readinto():
@@ -430,12 +430,29 @@ def test_i2c_writeto():
     i2c.writeto(0x68, 0x00)
 
 
-def test_i2c_readfrom():
-    # MicroPython's readfrom(addr, nbytes) returns heap bytes; the layer
-    # refuses it at compile time and names readfrom_into(addr, buf).
+def test_i2c_readfrom_returns_nbytes():
+    # Upstream: readfrom(addr, nbytes, stop=True, /) returns nbytes. It used to
+    # be refused as needing a heap.
     i2c = I2C()
-    with pytest.raises(CompileError, match="heap-allocated bytes"):
-        i2c.readfrom(0x68, 1)
+    got = i2c.readfrom(0x68, 2)
+    assert isinstance(got, bytearray) and len(got) == 2
+    i2c._i2c.nack.add(0x68)
+    with pytest.raises(OSError):
+        i2c.readfrom(0x68, 2)
+
+
+def test_i2c_readfrom_mem_takes_upstreams_signature():
+    # Upstream: readfrom_mem(addr, memaddr, nbytes, *, addrsize=8). The layer
+    # took a caller buffer and a count instead, so the upstream call failed
+    # asking for a fourth argument.
+    i2c = I2C()
+    got = i2c.readfrom_mem(0x68, 0x75, 1)
+    assert isinstance(got, bytearray) and len(got) == 1
+    assert len(i2c.readfrom_mem(0x68, 0x3B, 6, addrsize=8)) == 6
+    with pytest.raises(CompileError):
+        i2c.readfrom_mem(0x68, 0x75, 1, addrsize=16)
+    with pytest.raises(TypeError):
+        i2c.readfrom_mem(0x68, 0x75, bytearray(2), 2)
 
 
 def test_i2c_scan_returns_int():
@@ -481,7 +498,7 @@ def test_i2c_mem_helpers():
     i2c.writeto_mem(0x68, 0x00, bytearray(b"\x01"))
     buf = bytearray(2)
     i2c.readfrom_mem_into(0x68, 0x00, buf)
-    i2c.readfrom_mem(0x68, 0x00, buf, 2)
+    assert len(i2c.readfrom_mem(0x68, 0x00, 2)) == 2
 
 
 def test_i2c_mem_helpers_reject_addrsize():
@@ -563,7 +580,7 @@ def test_i2c_mem_helpers_raise_eio_on_nack():
     with pytest.raises(OSError):
         i2c.readfrom_mem_into(0x3C, 0x00, bytearray(2))
     with pytest.raises(OSError):
-        i2c.readfrom_mem(0x3C, 0x00, bytearray(2), 2)
+        i2c.readfrom_mem(0x3C, 0x00, 2)
 
 
 def test_i2c_ack_path_raises_nothing():
@@ -614,7 +631,7 @@ def test_softi2c_mem_helpers():
     i2c.writeto_mem(0x48, 0x00, bytearray(b"\x01"))
     buf = bytearray(2)
     i2c.readfrom_mem_into(0x48, 0x00, buf)
-    i2c.readfrom_mem(0x48, 0x00, buf, 2)
+    assert len(i2c.readfrom_mem(0x48, 0x00, 2)) == 2
 
 
 def test_softi2c_raises_eio_on_nack():
@@ -637,7 +654,7 @@ def test_softi2c_raises_eio_on_nack():
     with pytest.raises(OSError):
         i2c.readfrom_mem_into(0x3C, 0x00, bytearray(2))
     with pytest.raises(OSError):
-        i2c.readfrom_mem(0x3C, 0x00, bytearray(2), 2)
+        i2c.readfrom_mem(0x3C, 0x00, 2)
 
 
 def test_softi2c_raises_eio_on_data_nack():

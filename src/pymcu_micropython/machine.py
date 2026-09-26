@@ -629,11 +629,13 @@ class SPI:
         self._spi.write_bytes(buf, len(buf))
 
     @inline
-    def read(self, nbytes: const[uint8], write: uint8 = 0x00) -> uint8:
-        # MicroPython: read(nbytes, write=0x00) returns a fresh bytes object,
-        # which needs a heap this target does not have. A caller after one
-        # byte uses readinto() on a bytearray(1) and takes buf[0].
-        raise _CompileError("machine.SPI.read: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: buf = bytearray(n); spi.readinto(buf).")
+    def read(self, nbytes: const[uint16], write: uint8 = 0x00) -> bytearray:
+        # MicroPython: read(nbytes, write=0x00) returns nbytes clocked in while write is
+        # sent. Returned by value, like I2C.readfrom: an @inline method's locals live in
+        # the caller's frame. The result is a bytearray where upstream's is bytes.
+        buf = bytearray(nbytes)
+        self.readinto(buf, write)
+        return buf
 
     @inline
     def readinto(self, buf: bytearray, write: uint8 = 0x00):
@@ -715,11 +717,11 @@ class SoftSPI:
             i = i + 1
 
     @inline
-    def read(self, nbytes: const[uint8], write: uint8 = 0x00) -> uint8:
-        # MicroPython: read(nbytes, write=0x00) returns a fresh bytes object,
-        # which needs a heap this target does not have -- same refusal as
-        # SPI.read. Fill a caller-owned buffer with readinto() instead.
-        raise _CompileError("machine.SoftSPI.read: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: buf = bytearray(n); spi.readinto(buf).")
+    def read(self, nbytes: const[uint16], write: uint8 = 0x00) -> bytearray:
+        # MicroPython: read(nbytes, write=0x00). See SPI.read.
+        buf = bytearray(nbytes)
+        self.readinto(buf, write)
+        return buf
 
     @inline
     def readinto(self, buf: bytearray, write: uint8 = 0x00):
@@ -840,13 +842,14 @@ class I2C:
                 i = i + 1
 
     @inline
-    def readfrom(self, addr: uint8, nbytes: const[uint8], stop: uint8 = 1) -> uint8:
-        # MicroPython: readfrom(addr, nbytes, stop=True, /) returns a fresh
-        # bytes object of length nbytes, which needs a heap this target does
-        # not have. The old single-byte readfrom(addr) answered where upstream
-        # would already have failed on a missing nbytes -- refuse and name the
-        # caller-owned-buffer form.
-        raise _CompileError("machine.I2C.readfrom: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: n = i2c.readfrom_into(addr, buf).")
+    def readfrom(self, addr: uint8, nbytes: const[uint16], stop: uint8 = 1) -> bytearray:
+        # MicroPython: readfrom(addr, nbytes, stop=True, /) returns nbytes read from the
+        # peripheral. There is no heap, but an @inline method's locals live in the
+        # caller's frame, so a buffer of a compile-time size is returned by value.
+        # Upstream's result is an immutable bytes; this one is a bytearray.
+        buf = bytearray(nbytes)
+        self.readfrom_into(addr, buf, stop)
+        return buf
 
     @inline
     def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
@@ -953,13 +956,16 @@ class I2C:
         return 1
 
     @inline
-    def readfrom_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, n: uint8) -> uint8:
-        # PyMCU extension: caller-owned buffer where MicroPython's real
-        # readfrom_mem(addr, memaddr, nbytes) returns a fresh bytes object (no heap on
-        # this chip). Use readfrom_mem_into(addr, memaddr, buf) for the faithful form.
-        if self._i2c.readfrom_mem(addr, memaddr, buf, n) != 1:
-            raise OSError("[Errno 5] EIO")
-        return 1
+    def readfrom_mem(self, addr: uint8, memaddr: uint8, nbytes: const[uint16], *,
+                     addrsize: const[uint8] = 8) -> bytearray:
+        # MicroPython: readfrom_mem(addr, memaddr, nbytes, *, addrsize=8) returns nbytes
+        # read from register memaddr. Returned by value like readfrom(); the result is a
+        # bytearray where upstream's is bytes. This used to be a four-argument PyMCU
+        # extension taking a caller buffer, so the upstream call did not compile; that
+        # form is readfrom_mem_into(addr, memaddr, buf).
+        buf = bytearray(nbytes)
+        self.readfrom_mem_into(addr, memaddr, buf, addrsize=addrsize)
+        return buf
 
 
 # ---------------------------------------------------------------------------
@@ -1036,12 +1042,11 @@ class SoftI2C:
                 i = i + 1
 
     @inline
-    def readfrom(self, addr: uint8, nbytes: const[uint8], stop: uint8 = 1) -> uint8:
-        # MicroPython: readfrom(addr, nbytes, stop=True, /) returns a fresh
-        # bytes object of length nbytes, which needs a heap this target does
-        # not have -- same refusal as I2C.readfrom. Fill a caller-owned buffer
-        # with readfrom_into() instead.
-        raise _CompileError("machine.SoftI2C.readfrom: upstream returns a heap-allocated bytes object of length nbytes, which this target cannot build. Fill a caller-owned buffer instead: n = i2c.readfrom_into(addr, buf).")
+    def readfrom(self, addr: uint8, nbytes: const[uint16], stop: uint8 = 1) -> bytearray:
+        # MicroPython: readfrom(addr, nbytes, stop=True, /). See I2C.readfrom.
+        buf = bytearray(nbytes)
+        self.readfrom_into(addr, buf, stop)
+        return buf
 
     @inline
     def readfrom_into(self, addr: uint8, buf: bytearray, stop: uint8 = 1) -> uint8:
@@ -1147,31 +1152,13 @@ class SoftI2C:
         return 1
 
     @inline
-    def readfrom_mem(self, addr: uint8, memaddr: uint8, buf: bytearray, n: uint8) -> uint8:
-        # PyMCU extension: caller-owned buffer and explicit count where MicroPython's
-        # real readfrom_mem(addr, memaddr, nbytes) returns a fresh bytes object (no
-        # heap on this chip). Use readfrom_mem_into(addr, memaddr, buf) for the
-        # faithful form (count is len(buf) there).
-        self._bus.start()
-        if self._bus.write(addr << 1) != 0:
-            self._bus.stop()
-            raise OSError("[Errno 5] EIO")
-        if self._bus.write(memaddr) != 0:
-            self._bus.stop()
-            raise OSError("[Errno 5] EIO")
-        self._bus.start()
-        if self._bus.write((addr << 1) | 1) != 0:
-            self._bus.stop()
-            raise OSError("[Errno 5] EIO")
-        i: uint8 = 0
-        while i < n:
-            if i == n - 1:
-                buf[i] = self._bus.read(0)
-            else:
-                buf[i] = self._bus.read(1)
-            i = i + 1
-        self._bus.stop()
-        return 1
+    def readfrom_mem(self, addr: uint8, memaddr: uint8, nbytes: const[uint16], *,
+                     addrsize: const[uint8] = 8) -> bytearray:
+        # MicroPython: readfrom_mem(addr, memaddr, nbytes, *, addrsize=8). See
+        # I2C.readfrom_mem.
+        buf = bytearray(nbytes)
+        self.readfrom_mem_into(addr, memaddr, buf, addrsize=addrsize)
+        return buf
 
 
 # ---------------------------------------------------------------------------
