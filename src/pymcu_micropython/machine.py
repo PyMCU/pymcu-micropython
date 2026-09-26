@@ -47,7 +47,8 @@ from pymcu.hal.power import (
 )
 from pymcu.hal.irq import (
     enable_interrupts as _enable_interrupts,
-    disable_interrupts as _disable_interrupts,
+    save_and_disable_interrupts as _save_and_disable_interrupts,
+    restore_interrupts as _restore_interrupts,
 )
 
 # ---------------------------------------------------------------------------
@@ -1191,18 +1192,19 @@ def unique_id() -> uint8:
 
 @inline
 def disable_irq() -> uint8:
-    # Disable global interrupts. Returns 1 so that enable_irq(state) can
-    # unconditionally re-enable on restore (MicroPython convention).
-    _disable_interrupts()
-    return 1
+    # MicroPython: disable_irq() returns the previous IRQ state, an opaque value to
+    # hand back to enable_irq(). It used to return 1 whatever the state was, so a
+    # nested section's enable_irq(s2) switched interrupts back on while the outer
+    # section still held them off (PyMCU#353).
+    return _save_and_disable_interrupts()
 
 
 @inline
-def enable_irq(state: uint8 = 1):
-    # Re-enable global interrupts. state is the value returned by disable_irq().
-    # Any non-zero state re-enables; zero leaves interrupts disabled.
-    if state != 0:
-        _enable_interrupts()
+def enable_irq(state: uint8):
+    # MicroPython: enable_irq(state) restores the state disable_irq() returned. The
+    # argument is required upstream, and it restores: a state taken with interrupts
+    # off leaves them off.
+    _restore_interrupts(state)
 
 
 # ---------------------------------------------------------------------------

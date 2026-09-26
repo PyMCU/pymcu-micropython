@@ -234,9 +234,25 @@ def _install_hal_mocks() -> None:
     _reg("i2c",      I2C=_MockI2C)
     _reg("timer",    Timer=_MockTimer, millis=lambda: 0, micros=lambda: 0, millis_init=lambda: None)
     _reg("watchdog", Watchdog=_MockWatchdog)
+    # The global interrupt flag, modelled so a nested critical section can be
+    # checked: save_and_disable_interrupts() answers the I-flag (0x80 when on)
+    # and restore_interrupts() puts back exactly what it is given.
+    irq_flag = {"on": 0x80}
+
+    def _save_and_disable():
+        state = irq_flag["on"]
+        irq_flag["on"] = 0
+        return state
+
+    def _restore(state):
+        irq_flag["on"] = 0x80 if state else 0
+
     _reg("irq",
-         enable_interrupts=lambda: None,
-         disable_interrupts=lambda: None)
+         enable_interrupts=lambda: irq_flag.update(on=0x80),
+         disable_interrupts=lambda: irq_flag.update(on=0),
+         save_and_disable_interrupts=_save_and_disable,
+         restore_interrupts=_restore,
+         irq_flag=irq_flag)
     _reg("power",
          sleep_idle=lambda: None,
          sleep_power_save=lambda: None,

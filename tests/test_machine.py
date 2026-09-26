@@ -674,20 +674,44 @@ def test_freq_default_16mhz():
 
 # ── disable_irq / enable_irq ─────────────────────────────────────────────  #
 
-def test_disable_irq_returns_nonzero():
+def _irq_on():
+    import pymcu.hal.irq as hal_irq
+    return hal_irq.irq_flag["on"] != 0
+
+
+def test_disable_irq_returns_nonzero_when_interrupts_were_on():
+    enable_irq(0x80)
     state = disable_irq()
     assert state != 0
-
-
-def test_enable_irq_nonzero_state():
-    # Should not raise; restores interrupts when state is truthy.
-    state = disable_irq()
+    assert not _irq_on()
     enable_irq(state)
+    assert _irq_on()
 
 
-def test_enable_irq_zero_state():
-    # Zero state leaves interrupts disabled (no call to enable_interrupts).
-    enable_irq(0)  # must not raise
+def test_enable_irq_zero_state_leaves_interrupts_off():
+    enable_irq(0x80)
+    disable_irq()
+    enable_irq(0)
+    assert not _irq_on()
+
+
+def test_nested_disable_irq_restores_the_outer_state():
+    # Upstream: s1 = disable_irq(); s2 = disable_irq(); enable_irq(s2) must leave
+    # interrupts off, since s2 was taken with them already off. It used to
+    # re-enable them (PyMCU#353).
+    enable_irq(0x80)
+    s1 = disable_irq()
+    s2 = disable_irq()
+    enable_irq(s2)
+    assert not _irq_on()
+    enable_irq(s1)
+    assert _irq_on()
+
+
+def test_enable_irq_state_is_required():
+    # Upstream's enable_irq(state) takes exactly one argument.
+    with pytest.raises(TypeError):
+        enable_irq()
 
 
 # ── idle / lightsleep / deepsleep ─────────────────────────────────────────  #
