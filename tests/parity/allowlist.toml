@@ -493,19 +493,9 @@ quote = "this chip's USART has no hardware flow-control pins and this HAL does n
 reason = "Documented limitation for this chip; see docs/limitations.md."
 
 [[deviation]]
-symbol = "machine.UART.deinit"
-status = "tracked:#16"
-reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
-
-[[deviation]]
-symbol = "machine.UART.flush"
-status = "tracked:#16"
-reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
-
-[[deviation]]
 symbol = "machine.UART.init"
 status = "tracked:#16"
-reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
+reason = "init() reprograms baudrate/bits/parity/stop and takes the fixed tx=/rx= pins; the stub's other keywords (timeouts, flow control, inversion, buffer sizes) are constructor-only or absent on this chip; tracked by PyMCU/pymcu-micropython#16."
 
 [[deviation]]
 symbol = "machine.UART.irq"
@@ -519,11 +509,6 @@ reason = "The compiler has no PEP 3102 positional-only parameter syntax (`/`); t
 
 [[deviation]]
 symbol = "machine.UART.sendbreak"
-status = "tracked:#16"
-reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
-
-[[deviation]]
-symbol = "machine.UART.txdone"
 status = "tracked:#16"
 reason = "UART lifecycle/control method not implemented; tracked by PyMCU/pymcu-micropython#16."
 

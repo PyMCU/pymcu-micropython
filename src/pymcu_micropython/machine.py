@@ -26,6 +26,7 @@ from pymcu.hal.gpio import Pin as _Pin
 from pymcu.hal.softi2c import SoftI2C as _SoftI2C
 from pymcu.hal.softspi import SoftSPI as _SoftSPI
 from pymcu.hal.uart import UART as _UART
+from pymcu.time import delay_us as _delay_us
 if __CHIP__.arch == "avr":
     # Imported from the AVR package rather than the pymcu.hal.gpio facade on
     # purpose. Re-exporting the name through that facade needs a wrapper def,
@@ -300,28 +301,106 @@ def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint32 = 1000000) ->
 
 class UART:
     @inline
-    def __init__(self, id: const[uint8] = 0, baudrate: uint32 = 9600):
-        # This chip has one USART. Silently configuring USART0 for a UART(1, ...)
-        # would leave the caller wiring the wrong pins and blaming the hardware.
+    def __init__(self, id: const[uint8] = 0, baudrate: const[uint32] = 9600,
+                 bits: const[uint8] = 8, parity: const = None, stop: const[uint8] = 1, *,
+                 tx: Pin = None, rx: Pin = None, timeout: const[uint16] = 0,
+                 timeout_char: const[uint16] = 0):
+        # MicroPython: UART(id, baudrate=9600, bits=8, parity=None, stop=1, *, tx, rx,
+        # timeout=0, timeout_char=0, ...). This chip has one USART. Silently configuring
+        # USART0 for a UART(1, ...) would leave the caller wiring the wrong pins and
+        # blaming the hardware.
         if id != 0:
             raise _CompileError("machine.UART: this chip has a single USART; id must be 0.")
-        self._hw = _UART(baudrate)
+        if tx is not None:
+            if tx._name != "PD1":
+                raise _CompileError("machine.UART: the USART pins are fixed on this chip; TX is PD1 (Pin(1) on an Uno).")
+        if rx is not None:
+            if rx._name != "PD0":
+                raise _CompileError("machine.UART: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
+        # Upstream's parity is None, or an int whose low bit picks odd (1) over even (0);
+        # the HAL numbers them 0 none, 1 even, 2 odd.
+        # By keyword: the RP2 HAL's UART takes tx/rx pins in second and third place.
+        self._hw = _UART(baudrate, bits=bits, parity=0 if parity is None else (2 if parity & 1 else 1), stop=stop)
+        # How long a read waits for its first byte and then between bytes, in ms. Upstream
+        # raises timeout_char to at least a frame and a bit (13 bit times) at this rate.
+        self._timeout = timeout
+        self._timeout_char = timeout_char if timeout_char > 13000 // baudrate + 1 else 13000 // baudrate + 1
+        # One frame on the wire, in microseconds: start bit, data, parity, stop.
+        self._frame_us = (1 + bits + (0 if parity is None else 1) + stop) * 1000000 // baudrate
 
     @inline
-    def write(self, buf: uint8):
+    def init(self, baudrate: const[uint32] = 9600, bits: const[uint8] = 8,
+             parity: const = None, stop: const[uint8] = 1, *, tx: Pin = None,
+             rx: Pin = None):
+        # MicroPython: init(baudrate=9600, bits=8, parity=None, stop=1, *, ...)
+        # reprograms the running USART. The read timeouts stay the constructor's: they
+        # are fixed when the program is compiled.
+        if tx is not None:
+            if tx._name != "PD1":
+                raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; TX is PD1 (Pin(1) on an Uno).")
+        if rx is not None:
+            if rx._name != "PD0":
+                raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
+        self._hw.reinit(baudrate, bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
+        self._frame_us = (1 + bits + (0 if parity is None else 1) + stop) * 1000000 // baudrate
+
+    @inline
+    def deinit(self):
+        # MicroPython: deinit() turns the UART off.
+        self._hw.deinit()
+
+    @inline
+    def flush(self):
+        # MicroPython: flush() waits until every byte written has been sent. Once the data
+        # register is empty the last byte is in the shift register, and one frame later it
+        # has left the pin; waiting that frame out may wait one frame more than needed.
+        while not self._hw.tx_empty():
+            pass
+        _delay_us(self._frame_us)
+
+    @inline
+    def txdone(self) -> uint8:
+        # MicroPython: txdone() is True when the shift register is idle. The flag that
+        # says so on this chip (TXC) stays set from any earlier frame unless every write
+        # clears it first, which this UART does not, so an answer here could say "done"
+        # while the last byte is still going out. flush() waits it out instead.
+        raise _CompileError("machine.UART.txdone: this chip's transmit-complete flag is not cleared per write, so it cannot say whether the last byte has left the pin. Use uart.flush(), which waits until it has.")
+
+    @inline
+    def write(self, buf: uint8) -> uint8:
         # Single-byte write: upstream's write(buf) takes a buffer, and a uint8
-        # is the honest one-byte shape on a heap-less target.
+        # is the honest one-byte shape on a heap-less target. Returns the count
+        # written, as upstream's write does.
         self._hw.write(buf)
+        return 1
 
     @inline
-    def write(self, buf: const[str]):
+    def write(self, buf: const[str]) -> uint16:
         # Overload: write a compile-time string literal (e.g. uart.write("OK\n")).
         # Maps to write_str; equivalent to uart.write(b"OK\n") in standard MicroPython.
         self._hw.write_str(buf)
+        return len(buf)
+
+    @inline
+    def write(self, buf: bytearray) -> uint16:
+        # MicroPython: write(buf) sends every byte of buf and returns how many.
+        i: uint16 = 0
+        n: uint16 = len(buf)
+        while i < n:
+            self._hw.write(buf[i])
+            i = i + 1
+        return n
 
     @inline
     def read(self) -> uint8:
         return self._hw.read()
+
+    @inline
+    def read(self, nbytes: uint16) -> uint8:
+        # MicroPython: read(nbytes) returns however many bytes arrived before the
+        # timeout, as a fresh bytes object, or None. A buffer of a fixed size cannot carry
+        # a length decided at run time, so this refuses and names the form that can.
+        raise _CompileError("machine.UART.read(nbytes): upstream returns as many bytes as arrived before the timeout, a length a fixed-size buffer cannot carry. Read into a buffer instead: buf = bytearray(n); count = uart.readinto(buf, n).")
 
     @inline
     def readline(self) -> uint8:
@@ -345,15 +424,27 @@ class UART:
         return self._hw.read_line(buf, max_len)
 
     @inline
-    def readinto(self, buf: bytearray) -> uint8:
-        # Matches MicroPython: readinto(buf) fills len(buf) bytes (blocking).
-        # len(buf) folds to a compile-time constant from the array declaration.
-        i: uint16 = 0
-        n: uint16 = len(buf)
-        while i < n:
-            buf[i] = self._hw.read()
-            i = i + 1
-        return n
+    def readinto(self, buf: bytearray) -> uint16:
+        # MicroPython: readinto(buf) reads at most len(buf) bytes.
+        return self.readinto(buf, len(buf))
+
+    @inline
+    def readinto(self, buf: bytearray, nbytes: uint16) -> uint16:
+        # MicroPython: readinto(buf, nbytes) reads at most nbytes into buf, waiting up to
+        # `timeout` ms for the first byte and `timeout_char` ms for each one after, and
+        # returns how many arrived. It used to block until the count was reached, which
+        # is not what a board does at the default timeout of 0. Upstream answers None
+        # when nothing arrived; this answers 0, which reads the same under `if n:`.
+        count: uint16 = 0
+        wait: uint16 = self._timeout
+        while count < nbytes:
+            c: int16 = self._hw.read_timeout(wait)
+            if c < 0:
+                return count
+            buf[count] = uint8(c)
+            count = count + 1
+            wait = self._timeout_char
+        return count
 
     @inline
     def any(self) -> uint8:

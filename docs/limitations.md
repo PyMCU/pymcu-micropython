@@ -192,6 +192,18 @@ and a run-time `nbytes` is refused while compiling.
 upstream call did not compile. That form is gone; its caller-buffer equivalent is
 `readfrom_mem_into(addr, memaddr, buf)`.
 
-`machine.UART.read()` and the no-argument `UART.readline()` still differ: upstream returns
-however many bytes arrived before a timeout, a length a fixed-size buffer cannot carry.
-`UART.readinto(buf)` and `UART.readline(buf)` are the buffer-based equivalents.
+`machine.UART.read(nbytes)` and the no-argument `UART.readline()` are refused while
+compiling: upstream returns however many bytes arrived before the timeout, a length a
+fixed-size buffer cannot carry. `UART.readinto(buf[, nbytes])` is the buffer-based
+equivalent, with upstream's timeouts: it waits `timeout` ms (default 0) for the first byte
+and `timeout_char` ms (at least 13 bit times) for each one after, and returns how many
+arrived, 0 where upstream answers None. The no-argument `UART.read()` still blocks for one
+byte and returns it, a PyMCU form.
+
+## UART transmit state
+
+`machine.UART.flush()` waits until the data register is empty and then for one frame, so
+it may wait one frame longer than needed. `machine.UART.txdone()` is refused while
+compiling: the flag that says the shift register is idle (TXC) is only meaningful if every
+write clears it first, which this UART does not do. `UART.init()` reprograms the rate and
+frame; the read timeouts are the constructor's.

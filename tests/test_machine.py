@@ -217,6 +217,71 @@ def test_uart_write_string_form():
     uart.write("test\n")
 
 
+def test_uart_takes_the_frame_upstream_does():
+    # Upstream: UART(id, baudrate=9600, bits=8, parity=None, stop=1, ...). The
+    # frame keywords used to be refused. Parity None/0/1 is none/even/odd; the
+    # HAL numbers them 0/1/2.
+    assert UART(0, 9600)._hw.config == (9600, 8, 0, 1)
+    assert UART(0, 9600, bits=7, parity=0, stop=2)._hw.config == (9600, 7, 1, 2)
+    assert UART(0, baudrate=115200, parity=1)._hw.config == (115200, 8, 2, 1)
+
+
+def test_uart_refuses_pins_other_than_the_usart_ones():
+    UART(0, 9600, tx=Pin(1), rx=Pin(0))
+    with pytest.raises(CompileError, match="TX is PD1"):
+        UART(0, 9600, tx=Pin(5))
+
+
+def test_uart_init_reprograms_and_deinit_switches_off():
+    uart = UART(0, 9600)
+    uart.init(19200, 7, 1, 2)
+    assert uart._hw.config == (19200, 7, 2, 2)
+    uart.deinit()
+    assert not uart._hw.enabled
+
+
+def test_uart_write_buffer_returns_the_count():
+    # Upstream: write(buf) returns the number of bytes written.
+    uart = UART(0, 9600)
+    assert uart.write(bytearray(b"AB\n")) == 3
+    assert uart._hw.sent == [0x41, 0x42, 0x0A]
+    assert uart.write(0x41) == 1
+
+
+def test_uart_readinto_returns_what_arrived_before_the_timeout():
+    # Upstream: readinto(buf[, nbytes]) reads at most nbytes, waiting `timeout`
+    # ms for the first byte and `timeout_char` for each after, and returns the
+    # count. It used to block until the buffer was full.
+    uart = UART(0, 9600, timeout=100, timeout_char=5)
+    uart._hw.rx = [1, 2]
+    buf = bytearray(4)
+    assert uart.readinto(buf) == 2
+    assert buf[:2] == bytearray(b"\x01\x02")
+    assert uart._hw.waits == [100, 5, 5]
+    uart._hw.rx = [7, 8, 9]
+    assert uart.readinto(buf, 2) == 2
+
+
+def test_uart_timeout_char_is_at_least_a_frame():
+    # Upstream raises timeout_char to 13000 // baudrate + 1 ms.
+    uart = UART(0, 9600)
+    uart._hw.rx = [1]
+    uart.readinto(bytearray(2))
+    assert uart._hw.waits == [0, 13000 // 9600 + 1]
+
+
+def test_uart_read_nbytes_is_refused_by_name():
+    with pytest.raises(CompileError, match="readinto"):
+        UART(0, 9600).read(4)
+
+
+def test_uart_flush_and_txdone():
+    uart = UART(0, 9600)
+    uart.flush()
+    with pytest.raises(CompileError, match="flush"):
+        uart.txdone()
+
+
 # ── ADC ───────────────────────────────────────────────────────────────────  #
 
 def test_adc_instantiation():

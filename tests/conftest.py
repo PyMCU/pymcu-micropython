@@ -56,8 +56,22 @@ def _install_hal_mocks() -> None:
         def pulse_in(self, state, timeout_us=1000): return 50
 
     class _MockUART:
-        def __init__(self, baudrate=9600): pass
-        def write(self, data):   pass
+        # Records the frame it was configured with, the bytes written, and serves
+        # read_timeout() from `rx` (-1 once it runs dry, as the HAL does on a timeout).
+        def __init__(self, baudrate=9600, bits=8, parity=0, stop=1):
+            self.config = (baudrate, bits, parity, stop)
+            self.sent = []
+            self.rx = []
+            self.waits = []
+            self.enabled = True
+        def reinit(self, baudrate=9600, bits=8, parity=0, stop=1):
+            self.config = (baudrate, bits, parity, stop)
+        def deinit(self):        self.enabled = False
+        def tx_empty(self):      return 1
+        def read_timeout(self, ms):
+            self.waits.append(ms)
+            return self.rx.pop(0) if self.rx else -1
+        def write(self, data):   self.sent.append(data)
         def read(self):          return 0
         def write_str(self, s):  pass
         def println(self, s):    pass
