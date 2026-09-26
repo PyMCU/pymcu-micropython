@@ -203,6 +203,7 @@ def _install_hal_mocks() -> None:
         # (0 = ACK, 1 = NACK) and the composite helpers return 1 on a fully
         # ACKed transaction.
         def __init__(self, scl, sda, half_us=5):
+            self.half = half_us
             # Test knobs: 7-bit addresses that NACK their SLA, and a flag that
             # NACKs every data byte after an acknowledged address.
             self.nack: set = set()

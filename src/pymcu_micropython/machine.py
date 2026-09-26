@@ -860,8 +860,11 @@ class SoftSPI:
 class I2C:
     @inline
     def __init__(self, id: const[uint8] = 0, *, scl: Pin = None, sda: Pin = None,
-                 freq: const[uint32] = 100000, timeout: const[uint32] = 50000):
-        # MicroPython: I2C(id, *, scl, sda, freq=400000, timeout=50000). The TWI pins are
+                 freq: const[uint32] = 400000, timeout: const[uint32] = 50000):
+        # MicroPython: I2C(id, *, scl, sda, freq=400000, timeout=50000). The default is
+        # upstream's 400 kHz (machine.I2C.rst, and DEFAULT_I2C_FREQ in the rp2 port); it
+        # was 100 kHz here. The HAL's own default stays 100 kHz, which is what
+        # CircuitPython's busio.I2C asks for. The TWI pins are
         # fixed in silicon (PC5 = SCL, PC4 = SDA), so scl=/sda= are accepted when they
         # name those pins -- I2C(0, scl=Pin(19), sda=Pin(18)) on an Uno, the way a port
         # spells its bus -- and refused by name when they name any other. freq programs
@@ -1138,11 +1141,14 @@ class I2C:
 
 class SoftI2C:
     @inline
-    def __init__(self, scl: Pin, sda: Pin, freq: const[uint32] = 100000):
-        # MicroPython: SoftI2C(scl=Pin(9), sda=Pin(8), freq=100000).
-        # Both lines need external pull-ups. The half-period is derived from
-        # freq at compile time (100 kHz -> 5 us); freq >= 500 kHz drops the
-        # delays entirely (max speed, no timing guarantee).
+    def __init__(self, scl: Pin, sda: Pin, freq: const[uint32] = 400000):
+        # MicroPython: SoftI2C(scl, sda, *, freq=400000, timeout=50000); the default is
+        # upstream's 400 kHz, which the docs define as the MAXIMUM SCL rate (the real
+        # one may be lower). Both lines need external pull-ups. The half-period is a
+        # whole number of microseconds derived from freq at compile time, so the rate
+        # this bit-bang reaches at 16 MHz is lower than asked: measured on the emulator,
+        # 100 kHz runs at about 82 kHz and 400 kHz (a 1 us half-period) at about 235 kHz;
+        # freq >= 500 kHz drops the delays entirely, about 800 kHz.
         half: uint8 = uint8(500000 // freq)
         self._bus = _SoftI2C(scl._pin, sda._pin, half)
         self._bus.init()

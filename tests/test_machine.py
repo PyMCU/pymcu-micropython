@@ -498,6 +498,11 @@ def test_i2c_accepts_the_fixed_twi_pins_and_a_frequency():
     assert i2c._i2c.freq == 400000
 
 
+def test_i2c_default_frequency_is_upstreams_400khz():
+    # machine.I2C.rst: I2C(id, *, scl, sda, freq=400000); rp2's DEFAULT_I2C_FREQ.
+    assert I2C(0)._i2c.freq == 400000
+
+
 def test_i2c_refuses_scl_or_sda_on_other_pins():
     with pytest.raises(CompileError, match="SCL is PC5"):
         I2C(0, scl=Pin(5), sda=Pin(18))
@@ -535,6 +540,13 @@ def test_i2c_writevto_writes_the_vector_as_one_transaction():
     i2c._i2c.nack.add(0x3D)
     with pytest.raises(OSError):
         i2c.writevto(0x3D, [bytearray(1)])
+
+
+def test_softi2c_default_frequency_is_upstreams_400khz():
+    # machine.I2C.rst: SoftI2C(scl, sda, *, freq=400000). 400 kHz is a 1 us
+    # half-period here (500000 // freq).
+    i2c = SoftI2C(Pin(5, Pin.OUT), Pin(4, Pin.OUT))
+    assert i2c._bus.half == 1
 
 
 def test_softi2c_writevto_counts_acks():
