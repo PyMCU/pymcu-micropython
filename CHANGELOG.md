@@ -1,5 +1,48 @@
 # Changelog — pymcu-micropython
 
+## 0.1.0b1 (re-frozen from main, 2026-09-29)
+
+Beta 1 ships from `main` at `9f602f0` today. Ten commits landed since the
+2026-09-26 re-freeze, all in `machine`, closing most of the API-parity gap
+the corpus/parity suites had flagged: constructor keyword arguments the
+layer used to refuse, and two silent-wrong-value bugs.
+
+### Added
+
+- **machine**: `I2C.writevto` and `SoftI2C.writevto` (`writevto(addr, vector, stop=True, /)`),
+  writing every buffer of a tuple or list back to back after one START, ACK-counted and
+  raising `OSError` on a NACK like `writeto`. The vector is walked by literal index (up to
+  eight buffers); a vector bound to a name is still refused by the compiler, so the upstream
+  SSD1306 driver (which keeps its vector in a field) does not compile yet.
+
+### Fixed
+
+- **machine**: `I2C`/`SoftI2C` default to upstream's 400 kHz (`freq=400000`), not 100 kHz;
+  only the layer's default changed; `busio.I2C`'s own 100 kHz default is unaffected.
+- **machine**: `PWM.freq(value)` retunes a Timer1 exact-frequency channel and reprograms
+  duty against the new period, instead of being refused; `PWM(pin); pwm.freq(1000)` is how
+  MicroPython servo drivers start.
+- **machine**: `SPI` and `I2C` take `sck=`/`mosi=`/`miso=` and `scl=`/`sda=` naming the
+  fixed hardware pins, instead of refusing any keyword pin argument; any other pin is
+  refused by name.
+- **machine**: `UART` takes upstream's `bits=`/`parity=`/`stop=`, and `write()`/`read()`/
+  `readinto()`/`init()`/`deinit()`/`flush()` now compile and follow upstream's timeout
+  semantics (`readinto` used to block until the buffer was full instead of returning what
+  arrived within `timeout`/`timeout_char`) (PyMCU#451, #16).
+- **machine**: `readfrom_mem`, `readfrom` and `SPI.read` take upstream's signatures
+  (`readfrom_mem(addr, memaddr, nbytes)` returning a fresh buffer, not a four-argument
+  caller-buffer extension).
+- **machine**: `Signal` builds its `Pin` from either upstream constructor shape
+  (`Signal(pin_obj, invert=)` or `Signal(pin_arguments..., invert=)`); the two-shape call
+  used to bind the wrong form and fail to compile.
+- **machine**: `disable_irq()`/`enable_irq(state)` go through the HAL's
+  `save_and_disable_interrupts()`/`restore_interrupts()`. `disable_irq()` used to always
+  return `1`, so a nested `enable_irq()` re-enabled interrupts the outer section still
+  held disabled (PyMCU#353), a silent-wrong-value bug now closed.
+- **machine**: `ADC.read_u16()` reaches `65535` at full scale (10-bit reading was linearly
+  scaled by 64, topping out at `65472`); now bit-replicated like the rp2 port
+  (`raw << 6 | raw >> 4`), a silent-wrong-value bug now closed.
+
 ## 0.1.0b1 (re-frozen from main, 2026-09-26)
 
 This layer was out of scope for the 2026-09-15 freeze. It publishes in beta 1
