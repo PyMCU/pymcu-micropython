@@ -118,7 +118,11 @@ class Pin:
             raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if __CHIP__.arch == "arm":
             # GP0-GP29: pin number IS the SIO bit index -- no port-string mapping.
-            self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
+            # OPEN_DRAIN is refused: the rp GPIO is push-pull only, and passing 2
+            # through to the HAL's mode() silently configures an input.
+            if mode == Pin.OPEN_DRAIN:
+                raise _CompileError("machine.Pin: OPEN_DRAIN is not a mode this chip can drive -- its GPIO is push-pull only. Drive the pin low for 0 and switch it to Pin.IN for 1, with an external pull-up (the AVR HAL refuses this the same way).")
+            self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else 0)
         elif __CHIP__.arch == "avr":
             # AVR: board number -> port string, per chip (see the HAL).
             self._name = _board_pin_name(pin_id)
@@ -127,14 +131,23 @@ class Pin:
             raise _CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
     @inline
-    def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const[uint8]):
+    def __init__(self, pin_id: const[uint8], mode: const[uint8], pull: const):
         if mode < -1 or mode > Pin.OPEN_DRAIN:
             raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         if __CHIP__.arch == "arm":
-            self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
+            if mode == Pin.OPEN_DRAIN:
+                raise _CompileError("machine.Pin: OPEN_DRAIN is not a mode this chip can drive -- its GPIO is push-pull only. Drive the pin low for 0 and switch it to Pin.IN for 1, with an external pull-up (the AVR HAL refuses this the same way).")
+            # The rp GPIO constructor accepts pull but never programs it, so the
+            # pull is applied through pull(), which does -- and pull=None is
+            # upstream's "no pull" spelling, the HAL's 0.
+            self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else 0)
+            if pull is None:
+                self._pin.pull(0)
+            elif pull != -1:
+                self._pin.pull(pull)
         elif __CHIP__.arch == "avr":
             self._name = _board_pin_name(pin_id)
-            self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
+            self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull)
         else:
             raise _CompileError("machine.Pin: integer pin numbers are Arduino/AVR and RP2040 only; this chip has no board pin map. Use the port name instead, e.g. Pin(\"RA4\", Pin.OUT).")
 
@@ -151,12 +164,13 @@ class Pin:
         self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode))
 
     @inline
-    def __init__(self, pin_id: const[str], mode: const[uint8], pull: const[uint8]):
-        # String + pull: Pin("PD2", Pin.IN, Pin.PULL_UP).
+    def __init__(self, pin_id: const[str], mode: const[uint8], pull: const):
+        # String + pull: Pin("PD2", Pin.IN, Pin.PULL_UP). pull=None is
+        # upstream's "no pull" spelling; the HAL spells that 0.
         if mode < -1 or mode > Pin.OPEN_DRAIN:
             raise _CompileError("machine.Pin: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
         self._name = pin_id
-        self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), pull)
+        self._pin = _Pin(self._name, 1 if mode == Pin.IN or mode == -1 else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull)
 
     @inline
     def high(self):
@@ -195,7 +209,7 @@ class Pin:
         self._pin.value(x)
 
     @inline
-    def init(self, mode: const[uint8] = -1, pull: const[uint8] = -1, *,
+    def init(self, mode: const[uint8] = -1, pull: const = -1, *,
              value: const = None, drive: const = None, alt: const = None):
         # MicroPython: init(mode=-1, pull=-1, *, value=None, drive=None, alt=None). -1
         # means "leave unchanged" for mode/pull on both this layer and the HAL (an unsigned
@@ -214,28 +228,50 @@ class Pin:
         # constructor performs; -1 ("leave unchanged") passes through.
         if mode < -1 or mode > Pin.OPEN_DRAIN:
             raise _CompileError("machine.Pin.init: mode must be Pin.IN, Pin.OUT, or Pin.OPEN_DRAIN.")
-        if value is None:
+        if __CHIP__.arch == "arm":
+            # The rp2040/rp2350 GPIO HAL has no init(); pull, mode and value are
+            # separate methods there. -1 stays "leave unchanged": an absent
+            # branch never calls the HAL.
+            if drive is not None:
+                raise _CompileError("machine.Pin.init: the rp2040/rp2350 GPIO HAL exposes no drive-strength knob, so drive= cannot reach the hardware.")
+            if alt is not None:
+                raise _CompileError("machine.Pin.init: the rp2040/rp2350 GPIO HAL exposes no alternate-function mux, so alt= cannot reach the hardware.")
+            if mode == Pin.OPEN_DRAIN:
+                raise _CompileError("machine.Pin.init: OPEN_DRAIN is not a mode this chip can drive -- the rp GPIO is push-pull only and mode(2) in the HAL only floats the driver. Drive the pin low for 0 and switch it to Pin.IN for 1, with an external pull-up.")
+            # The output latch is written BEFORE the direction: init(OUT,
+            # value=1) on a low-latched pin enabled the driver first and put a
+            # low pulse on the wire. pull=None is upstream's "disable pulls"
+            # spelling; the rp HAL spells that 0.
+            if value is not None:
+                self._pin.value(value)
+            if pull is None:
+                self._pin.pull(0)
+            elif pull != -1:
+                self._pin.pull(pull)
+            if mode != -1:
+                self._pin.mode(1 if mode == Pin.IN else 0)
+        elif value is None:
             if drive is None:
                 if alt is None:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull)
                 else:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, -1, 0, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, -1, 0, alt)
             else:
                 if alt is None:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, -1, drive)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, -1, drive)
                 else:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, -1, drive, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, -1, drive, alt)
         else:
             if drive is None:
                 if alt is None:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, value)
                 else:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value, 0, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, value, 0, alt)
             else:
                 if alt is None:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value, drive)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, value, drive)
                 else:
-                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), pull, value, drive, alt)
+                    self._pin.init(1 if mode == Pin.IN else (0 if mode == Pin.OUT else mode), 0 if pull is None else pull, value, drive, alt)
 
     @inline
     def __call__(self) -> uint8:
@@ -1617,7 +1653,7 @@ class Signal:
             elif pull is None:
                 self._pin = Pin(pin, mode)
             else:
-                self._pin = Pin(pin, mode, pull)
+                self._pin = Pin(pin, mode, 0 if pull is None else pull)
             self._inv = invert
 
     @inline
