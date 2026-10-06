@@ -341,6 +341,30 @@ def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint32 = 1000000) ->
 # UART
 # ---------------------------------------------------------------------------
 
+@inline
+def _rp_uart_tx_id(pin) -> int16:
+    # Upstream machine_uart.c's IS_VALID_TX/IS_VALID_PERIPH: TX pads sit at
+    # (pin & 3) == 0 on the RP2040 and at every even pin on the RP2350, and the
+    # UART id is bit 3 of pin + 4 in both. -1 means the pin is no TX pad.
+    if __CHIP__.name == "rp2350":
+        if pin < 0 or pin > 47 or pin & 1:
+            return -1
+    elif pin < 0 or pin > 29 or pin & 3:
+        return -1
+    return (pin + 4) >> 3 & 1
+
+
+@inline
+def _rp_uart_rx_id(pin) -> int16:
+    # IS_VALID_RX: (pin & 3) == 1 on the RP2040, every odd pin on the RP2350.
+    if __CHIP__.name == "rp2350":
+        if pin < 0 or pin > 47 or (pin & 1) == 0:
+            return -1
+    elif pin < 0 or pin > 29 or (pin & 3) != 1:
+        return -1
+    return (pin + 4) >> 3 & 1
+
+
 class UART:
     @inline
     def __init__(self, id: const[uint8] = 0, baudrate: const[uint32] = 9600,
@@ -348,10 +372,13 @@ class UART:
                  tx: Pin = None, rx: Pin = None, timeout: const[uint16] = 0,
                  timeout_char: const[uint16] = 0):
         # MicroPython: UART(id, baudrate=9600, bits=8, parity=None, stop=1, *, tx, rx,
-        # timeout=0, timeout_char=0, ...). This chip has one USART. Silently configuring
-        # USART0 for a UART(1, ...) would leave the caller wiring the wrong pins and
-        # blaming the hardware.
+        # timeout=0, timeout_char=0, ...). Silently configuring UART0 for a
+        # UART(1, ...) would leave the caller wiring the wrong pins and blaming
+        # the hardware -- on RP the second UART exists in silicon but this HAL
+        # does not drive it, so it is refused instead of aliased.
         if id != 0:
+            if __CHIP__.arch == "arm":
+                raise _CompileError("machine.UART: the RP chip has UART0 and UART1, but this HAL drives UART0 only -- id must be 0.")
             raise _CompileError("machine.UART: this chip has a single USART; id must be 0.")
         # Upstream's parity is None, or an int whose low bit picks odd (1) over even (0);
         # the HAL numbers them 0 none, 1 even, 2 odd.
@@ -359,7 +386,15 @@ class UART:
             # UART0's pads route per-pin through the HAL constructor; upstream's
             # default when tx/rx go unnamed is the peripheral's own pair (GP0/GP1
             # on UART0). A machine.Pin carries its pad number in _pin._pin, which
-            # folds to a constant here.
+            # folds to a constant here. Each pad's role is checked against the
+            # chip's mux table -- IS_VALID_TX/IS_VALID_RX in machine_uart.c --
+            # so tx=Pin(1) cannot silently transmit on GP0 the way it used to.
+            if tx is not None:
+                if _rp_uart_tx_id(tx._pin._pin) != 0:
+                    raise _CompileError("machine.UART: bad TX pin -- UART0's TX pads are GP0, GP12, GP16 and GP28 on an RP2040 (every even pin on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
+            if rx is not None:
+                if _rp_uart_rx_id(rx._pin._pin) != 0:
+                    raise _CompileError("machine.UART: bad RX pin -- UART0's RX pads are GP1, GP13, GP17 and GP29 on an RP2040 (every odd pin on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
             self._hw = _UART(baudrate,
                              0 if tx is None else tx._pin._pin,
                              1 if rx is None else rx._pin._pin,
