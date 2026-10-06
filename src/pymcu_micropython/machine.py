@@ -422,9 +422,12 @@ class UART:
                     raise _CompileError("machine.UART: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
             self._hw = _UART(baudrate, bits=bits, parity=par_hw, stop=stop)
         # How long a read waits for its first byte and then between bytes, in ms. Upstream
-        # raises timeout_char to at least a frame and a bit (13 bit times) at this rate.
+        # raises timeout_char to at least a frame and a bit (13 bit times) at this rate
+        # and re-applies that floor on every init(), so the bound itself is runtime
+        # state: init() cannot re-derive it from the running baudrate, which is gone.
         self._timeout = timeout
-        self._timeout_char = timeout_char if timeout_char > 13000 // baudrate + 1 else 13000 // baudrate + 1
+        self._min_timeout_char = 13000 // baudrate + 1
+        self._timeout_char = timeout_char if timeout_char > self._min_timeout_char else self._min_timeout_char
         # One frame on the wire, in microseconds: start bit, data, parity, stop.
         self._frame_us = (1 + bits + (0 if parity is None else 1) + stop) * 1000000 // baudrate
 
@@ -443,10 +446,16 @@ class UART:
         # the one thing a partial call may set alone.
         if baudrate == -1 and bits == -1 and parity == -1 and stop == -1 and tx is None and rx is None:
             # Frame and pads untouched; only the read timeouts may change.
+            # Upstream still applies the one-character floor to a supplied
+            # timeout_char (machine_uart.c re-floors against the live baudrate
+            # on every init) -- the floor lives in _min_timeout_char because the
+            # baudrate it came from is not re-readable.
             if timeout != -1:
                 self._timeout = timeout
             if timeout_char != -1:
                 self._timeout_char = timeout_char
+            if self._timeout_char < self._min_timeout_char:
+                self._timeout_char = self._min_timeout_char
             return
         if baudrate == -1 or bits == -1 or parity == -1 or stop == -1:
             raise _CompileError("machine.UART.init: the fields not passed live in runtime storage and cannot be re-read as the constants the HAL needs -- pass baudrate, bits, parity and stop explicitly, or call init() bare to keep the whole configuration.")
@@ -475,10 +484,16 @@ class UART:
                 if rx._name != "PD0":
                     raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
             self._hw.reinit(baudrate, bits, par_hw, stop)
+        # A new baudrate moves the one-character floor: upstream re-computes
+        # min_timeout_char from the live baudrate on every init and raises the
+        # effective timeout_char (supplied or kept) to it.
+        self._min_timeout_char = 13000 // baudrate + 1
         if timeout != -1:
             self._timeout = timeout
         if timeout_char != -1:
             self._timeout_char = timeout_char
+        if self._timeout_char < self._min_timeout_char:
+            self._timeout_char = self._min_timeout_char
         self._frame_us = (1 + bits + (0 if par_hw == 0 else 1) + stop) * 1000000 // baudrate
 
     @inline
