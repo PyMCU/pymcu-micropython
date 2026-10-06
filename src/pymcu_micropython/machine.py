@@ -19,6 +19,8 @@
 #   All methods are @inline -- no stack frame, no SRAM instance struct.
 #   Pin number -> string name resolution happens at compile time via match/case.
 
+from typing import Optional
+
 from pymcu.types import uint8, uint16, uint32, int16, inline, const, ptr, Callable
 from pymcu.chips import __CHIP__, __FREQ__
 from pymcu.exceptions import CompileError as _CompileError
@@ -41,6 +43,10 @@ if __CHIP__.arch == "avr":
     from pymcu.hal.i2c import I2C as _I2C
     from pymcu.hal.timer import Timer as _Timer
     from pymcu.hal.watchdog import Watchdog as _Watchdog
+else:
+    # The RP UART HAL has no timed read: readinto's first-byte wait polls the
+    # RX flag against the free-running microsecond TIMER (no init needed there).
+    from pymcu.time import micros as _micros
 from pymcu.hal.power import (
     sleep_idle as _sleep_idle,
     sleep_power_save as _sleep_power_save,
@@ -347,16 +353,25 @@ class UART:
         # blaming the hardware.
         if id != 0:
             raise _CompileError("machine.UART: this chip has a single USART; id must be 0.")
-        if tx is not None:
-            if tx._name != "PD1":
-                raise _CompileError("machine.UART: the USART pins are fixed on this chip; TX is PD1 (Pin(1) on an Uno).")
-        if rx is not None:
-            if rx._name != "PD0":
-                raise _CompileError("machine.UART: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
         # Upstream's parity is None, or an int whose low bit picks odd (1) over even (0);
         # the HAL numbers them 0 none, 1 even, 2 odd.
-        # By keyword: the RP2 HAL's UART takes tx/rx pins in second and third place.
-        self._hw = _UART(baudrate, bits=bits, parity=0 if parity is None else (2 if parity & 1 else 1), stop=stop)
+        if __CHIP__.arch == "arm":
+            # UART0's pads route per-pin through the HAL constructor; upstream's
+            # default when tx/rx go unnamed is the peripheral's own pair (GP0/GP1
+            # on UART0). A machine.Pin carries its pad number in _pin._pin, which
+            # folds to a constant here.
+            self._hw = _UART(baudrate,
+                             0 if tx is None else tx._pin._pin,
+                             1 if rx is None else rx._pin._pin,
+                             bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
+        else:
+            if tx is not None:
+                if tx._name != "PD1":
+                    raise _CompileError("machine.UART: the USART pins are fixed on this chip; TX is PD1 (Pin(1) on an Uno).")
+            if rx is not None:
+                if rx._name != "PD0":
+                    raise _CompileError("machine.UART: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
+            self._hw = _UART(baudrate, bits=bits, parity=0 if parity is None else (2 if parity & 1 else 1), stop=stop)
         # How long a read waits for its first byte and then between bytes, in ms. Upstream
         # raises timeout_char to at least a frame and a bit (13 bit times) at this rate.
         self._timeout = timeout
@@ -371,13 +386,21 @@ class UART:
         # MicroPython: init(baudrate=9600, bits=8, parity=None, stop=1, *, ...)
         # reprograms the running USART. The read timeouts stay the constructor's: they
         # are fixed when the program is compiled.
-        if tx is not None:
-            if tx._name != "PD1":
-                raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; TX is PD1 (Pin(1) on an Uno).")
-        if rx is not None:
-            if rx._name != "PD0":
-                raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
-        self._hw.reinit(baudrate, bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
+        if __CHIP__.arch == "arm":
+            # The rp UART HAL has no reinit; constructing it again re-programs
+            # the peripheral and re-routes the pads, which is the same thing.
+            self._hw = _UART(baudrate,
+                             0 if tx is None else tx._pin._pin,
+                             1 if rx is None else rx._pin._pin,
+                             bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
+        else:
+            if tx is not None:
+                if tx._name != "PD1":
+                    raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; TX is PD1 (Pin(1) on an Uno).")
+            if rx is not None:
+                if rx._name != "PD0":
+                    raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
+            self._hw.reinit(baudrate, bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
         self._frame_us = (1 + bits + (0 if parity is None else 1) + stop) * 1000000 // baudrate
 
     @inline
@@ -429,7 +452,14 @@ class UART:
 
     @inline
     def read(self) -> uint8:
-        return self._hw.read()
+        if __CHIP__.arch == "avr":
+            return self._hw.read()
+        else:
+            # Upstream's no-arg read() returns the bytes waiting now -- or None
+            # -- a heap shape this target cannot hold, and the HAL's one-byte
+            # read() blocks, which is not what a board does. The buffer form is
+            # honest: n = uart.readinto(buf) is the count, or None on empty.
+            raise _CompileError("machine.UART.read() upstream returns the bytes available now as a bytes object, or None -- a heap shape this target cannot hold. Read into a buffer instead: buf = bytearray(n); count = uart.readinto(buf).")
 
     @inline
     def read(self, nbytes: uint16) -> uint8:
@@ -460,33 +490,50 @@ class UART:
         return self._hw.read_line(buf, max_len)
 
     @inline
-    def readinto(self, buf: bytearray) -> uint16:
+    def readinto(self, buf: bytearray) -> Optional[uint16]:
         # MicroPython: readinto(buf) reads at most len(buf) bytes.
         return self.readinto(buf, len(buf))
 
     @inline
-    def readinto(self, buf: bytearray, nbytes: uint16) -> uint16:
+    def readinto(self, buf: bytearray, nbytes: uint16) -> Optional[uint16]:
         # MicroPython: readinto(buf, nbytes) reads at most nbytes into buf, waiting up to
         # `timeout` ms for the first byte and `timeout_char` ms for each one after, and
         # returns how many arrived. It used to block until the count was reached, which
         # is not what a board does at the default timeout of 0. Upstream answers None
-        # when nothing arrived; this answers 0, which reads the same under `if n:`.
+        # when nothing arrived; on ARM this answers None too, on AVR it answers 0,
+        # which reads the same under `if n:`.
         count: uint16 = 0
         wait: uint16 = self._timeout
         while count < nbytes:
-            c: int16 = self._hw.read_timeout(wait)
-            if c < 0:
-                return count
-            buf[count] = uint8(c)
+            if __CHIP__.arch == "avr":
+                c: int16 = self._hw.read_timeout(wait)
+                if c < 0:
+                    return count
+                buf[count] = uint8(c)
+            else:
+                # No timed read in the rp UART HAL: poll the RX-not-empty flag
+                # against the free-running microsecond TIMER (wrap-safe diff).
+                start_us: uint32 = _micros()
+                while self._hw.available() == 0:
+                    if _micros() - start_us >= uint32(wait) * 1000:
+                        if count == 0:
+                            return None
+                        return count
+                buf[count] = self._hw.read()
             count = count + 1
             wait = self._timeout_char
         return count
 
     @inline
     def any(self) -> uint8:
-        # Returns 1 if at least one byte is waiting in the receive buffer (RXC0).
         # Standard MicroPython: uart.any() -> number of bytes available.
-        return self._hw.available()
+        if __CHIP__.arch == "avr":
+            # Returns 1 if at least one byte is waiting in the receive buffer (RXC0).
+            return self._hw.available()
+        else:
+            # The rp UART FIFO reports only empty-or-not -- no count -- so a
+            # count answered here would be false (1 for two queued bytes).
+            raise _CompileError("machine.UART.any() is a byte count and this chip's UART FIFO reports only empty-or-not -- it cannot count. Poll readinto() instead; it reports how many bytes it actually got.")
 
     # The rp2 firmware's UART has no irq(), write_str(), println() or
     # print_byte() -- the stub's irq is an esp32-port declaration, and the
