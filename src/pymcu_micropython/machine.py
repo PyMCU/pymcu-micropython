@@ -381,7 +381,9 @@ class UART:
                 raise _CompileError("machine.UART: the RP chip has UART0 and UART1, but this HAL drives UART0 only -- id must be 0.")
             raise _CompileError("machine.UART: this chip has a single USART; id must be 0.")
         # Upstream's parity is None, or an int whose low bit picks odd (1) over even (0);
-        # the HAL numbers them 0 none, 1 even, 2 odd.
+        # the HAL numbers them 0 none, 1 even, 2 odd. Unannotated so the value stays a
+        # compile-time constant on its way to the HAL's const params.
+        par_hw = 0 if parity is None else (2 if parity & 1 else 1)
         if __CHIP__.arch == "arm":
             # UART0's pads route per-pin through the HAL constructor; upstream's
             # default when tx/rx go unnamed is the peripheral's own pair (GP0/GP1
@@ -398,7 +400,7 @@ class UART:
             self._hw = _UART(baudrate,
                              0 if tx is None else tx._pin._pin,
                              1 if rx is None else rx._pin._pin,
-                             bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
+                             bits, par_hw, stop)
         else:
             if tx is not None:
                 if tx._name != "PD1":
@@ -406,7 +408,7 @@ class UART:
             if rx is not None:
                 if rx._name != "PD0":
                     raise _CompileError("machine.UART: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
-            self._hw = _UART(baudrate, bits=bits, parity=0 if parity is None else (2 if parity & 1 else 1), stop=stop)
+            self._hw = _UART(baudrate, bits=bits, parity=par_hw, stop=stop)
         # How long a read waits for its first byte and then between bytes, in ms. Upstream
         # raises timeout_char to at least a frame and a bit (13 bit times) at this rate.
         self._timeout = timeout
@@ -415,19 +417,40 @@ class UART:
         self._frame_us = (1 + bits + (0 if parity is None else 1) + stop) * 1000000 // baudrate
 
     @inline
-    def init(self, baudrate: const[uint32] = 9600, bits: const[uint8] = 8,
-             parity: const = None, stop: const[uint8] = 1, *, tx: Pin = None,
-             rx: Pin = None):
-        # MicroPython: init(baudrate=9600, bits=8, parity=None, stop=1, *, ...)
-        # reprograms the running USART. The read timeouts stay the constructor's: they
-        # are fixed when the program is compiled.
+    def init(self, baudrate: const = -1, bits: const = -1, parity: const = -1,
+             stop: const = -1, *, tx: Pin = None, rx: Pin = None,
+             timeout: const = -1, timeout_char: const = -1):
+        # MicroPython: init(...) reprograms the running UART, and upstream's
+        # defaults are -1/None sentinels meaning "leave unchanged". init() with
+        # no arguments is the honest no-op that says the same thing -- the
+        # stored configuration is runtime state and cannot be re-read as the
+        # compile-time constants the HAL constructors fold from, so a partial
+        # call cannot be honoured either: touch any frame field and ALL FOUR
+        # (plus both pads on RP, whose HAL routes them) must be passed
+        # explicitly. timeout and timeout_char are runtime fields, so they are
+        # the one thing a partial call may set alone.
+        if baudrate == -1 and bits == -1 and parity == -1 and stop == -1 and tx is None and rx is None:
+            # Frame and pads untouched; only the read timeouts may change.
+            if timeout != -1:
+                self._timeout = timeout
+            if timeout_char != -1:
+                self._timeout_char = timeout_char
+            return
+        if baudrate == -1 or bits == -1 or parity == -1 or stop == -1:
+            raise _CompileError("machine.UART.init: the fields not passed live in runtime storage and cannot be re-read as the constants the HAL needs -- pass baudrate, bits, parity and stop explicitly, or call init() bare to keep the whole configuration.")
+        par_hw = 0 if parity is None else (2 if parity & 1 else 1)
         if __CHIP__.arch == "arm":
             # The rp UART HAL has no reinit; constructing it again re-programs
-            # the peripheral and re-routes the pads, which is the same thing.
-            self._hw = _UART(baudrate,
-                             0 if tx is None else tx._pin._pin,
-                             1 if rx is None else rx._pin._pin,
-                             bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
+            # the peripheral and re-routes the pads, which is the same thing --
+            # but pads are const there too, so both must be named. Each pad's
+            # role is checked against the chip's mux table, as in the ctor.
+            if tx is None or rx is None:
+                raise _CompileError("machine.UART.init: reprogramming re-routes the pads, and the routed pads are runtime state that cannot be re-read as constants -- pass tx= and rx= explicitly, or call init() bare.")
+            if _rp_uart_tx_id(tx._pin._pin) != 0:
+                raise _CompileError("machine.UART.init: bad TX pin -- UART0's TX pads are GP0, GP12, GP16 and GP28 on an RP2040 (every even pin on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
+            if _rp_uart_rx_id(rx._pin._pin) != 0:
+                raise _CompileError("machine.UART.init: bad RX pin -- UART0's RX pads are GP1, GP13, GP17 and GP29 on an RP2040 (every odd pin on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
+            self._hw = _UART(baudrate, tx._pin._pin, rx._pin._pin, bits, par_hw, stop)
         else:
             if tx is not None:
                 if tx._name != "PD1":
@@ -435,8 +458,12 @@ class UART:
             if rx is not None:
                 if rx._name != "PD0":
                     raise _CompileError("machine.UART.init: the USART pins are fixed on this chip; RX is PD0 (Pin(0) on an Uno).")
-            self._hw.reinit(baudrate, bits, 0 if parity is None else (2 if parity & 1 else 1), stop)
-        self._frame_us = (1 + bits + (0 if parity is None else 1) + stop) * 1000000 // baudrate
+            self._hw.reinit(baudrate, bits, par_hw, stop)
+        if timeout != -1:
+            self._timeout = timeout
+        if timeout_char != -1:
+            self._timeout_char = timeout_char
+        self._frame_us = (1 + bits + (0 if par_hw == 0 else 1) + stop) * 1000000 // baudrate
 
     @inline
     def deinit(self):
