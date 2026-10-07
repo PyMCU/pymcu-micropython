@@ -47,6 +47,12 @@ else:
     # The RP UART HAL has no timed read: readinto's first-byte wait polls the
     # RX flag against the free-running microsecond TIMER (no init needed there).
     from pymcu.time import micros as _micros
+if __CHIP__.arch == "arm":
+    # Which UART a pad reaches, and whether it reaches one at all, is this
+    # chip's own mux table -- the HAL's to answer, not this layer's. A
+    # separate gate from the avr/else one above: tx_id/rx_id exist only on
+    # the rp2040/rp2350 branches of pymcu.hal.uart, not on every non-AVR arch.
+    from pymcu.hal.uart import tx_id, rx_id
 from pymcu.hal.power import (
     sleep_idle as _sleep_idle,
     sleep_power_save as _sleep_power_save,
@@ -341,38 +347,6 @@ def time_pulse_us(pin: Pin, pulse_level: uint8, timeout_us: uint32 = 1000000) ->
 # UART
 # ---------------------------------------------------------------------------
 
-@inline
-def _rp_uart_tx_id(pin) -> int16:
-    # Upstream machine_uart.c's IS_VALID_TX/IS_VALID_PERIPH: TX pads sit at
-    # (pin & 3) == 0 on the RP2040 and at every even pin on the RP2350, and the
-    # UART id is bit 3 of pin + 4 in both. -1 means the pin is no TX pad.
-    # On the RP2350 a pad numbered 2 mod 4 reaches its UART only through
-    # GPIO_FUNC_UART_AUX, which the rp2350 HAL never writes -- a UART accepted
-    # on GP2 would drive nothing, so those pads report -2 and get refused.
-    if __CHIP__.name == "rp2350":
-        if pin < 0 or pin > 47 or pin & 1:
-            return -1
-        if pin & 3 == 2:
-            return -2
-    elif pin < 0 or pin > 29 or pin & 3:
-        return -1
-    return (pin + 4) >> 3 & 1
-
-
-@inline
-def _rp_uart_rx_id(pin) -> int16:
-    # IS_VALID_RX: (pin & 3) == 1 on the RP2040, every odd pin on the RP2350.
-    # Pads numbered 3 mod 4 are the RX half that needs GPIO_FUNC_UART_AUX (-2).
-    if __CHIP__.name == "rp2350":
-        if pin < 0 or pin > 47 or (pin & 1) == 0:
-            return -1
-        if pin & 3 == 3:
-            return -2
-    elif pin < 0 or pin > 29 or (pin & 3) != 1:
-        return -1
-    return (pin + 4) >> 3 & 1
-
-
 class UART:
     @inline
     def __init__(self, id: const[uint8] = 0, baudrate: const[uint32] = 9600,
@@ -399,15 +373,13 @@ class UART:
             # folds to a constant here. Each pad's role is checked against the
             # chip's mux table -- IS_VALID_TX/IS_VALID_RX in machine_uart.c --
             # so tx=Pin(1) cannot silently transmit on GP0 the way it used to.
+            # A pad that reaches its UART only through GPIO_FUNC_UART_AUX (RP2350)
+            # never reaches tx_id/rx_id at all: the HAL raises there, naming the pad.
             if tx is not None:
-                if _rp_uart_tx_id(tx._pin._pin) == -2:
-                    raise _CompileError("machine.UART: on the RP2350 a TX pad numbered 2 mod 4 reaches its UART only through GPIO_FUNC_UART_AUX, which this HAL never writes -- the pin would mux to a function that is not the UART. Pick a pad numbered 0 mod 4 (GP0, GP12, GP16, GP28 for UART0).")
-                if _rp_uart_tx_id(tx._pin._pin) != 0:
+                if tx_id(tx._pin._pin) != 0:
                     raise _CompileError("machine.UART: bad TX pin -- UART0's TX pads are GP0, GP12, GP16 and GP28 on an RP2040 (those plus GP32 and GP44 on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
             if rx is not None:
-                if _rp_uart_rx_id(rx._pin._pin) == -2:
-                    raise _CompileError("machine.UART: on the RP2350 an RX pad numbered 3 mod 4 reaches its UART only through GPIO_FUNC_UART_AUX, which this HAL never writes -- the pin would mux to a function that is not the UART. Pick a pad numbered 1 mod 4 (GP1, GP13, GP17, GP29 for UART0).")
-                if _rp_uart_rx_id(rx._pin._pin) != 0:
+                if rx_id(rx._pin._pin) != 0:
                     raise _CompileError("machine.UART: bad RX pin -- UART0's RX pads are GP1, GP13, GP17 and GP29 on an RP2040 (those plus GP33 and GP45 on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
             self._hw = _UART(baudrate,
                              0 if tx is None else tx._pin._pin,
@@ -467,13 +439,11 @@ class UART:
             # role is checked against the chip's mux table, as in the ctor.
             if tx is None or rx is None:
                 raise _CompileError("machine.UART.init: reprogramming re-routes the pads, and the routed pads are runtime state that cannot be re-read as constants -- pass tx= and rx= explicitly, or call init() bare.")
-            if _rp_uart_tx_id(tx._pin._pin) == -2:
-                raise _CompileError("machine.UART.init: on the RP2350 a TX pad numbered 2 mod 4 reaches its UART only through GPIO_FUNC_UART_AUX, which this HAL never writes -- pick a pad numbered 0 mod 4 (GP0, GP12, GP16, GP28 for UART0).")
-            if _rp_uart_tx_id(tx._pin._pin) != 0:
+            # A pad that reaches its UART only through GPIO_FUNC_UART_AUX (RP2350)
+            # never reaches tx_id/rx_id at all: the HAL raises there, naming the pad.
+            if tx_id(tx._pin._pin) != 0:
                 raise _CompileError("machine.UART.init: bad TX pin -- UART0's TX pads are GP0, GP12, GP16 and GP28 on an RP2040 (those plus GP32 and GP44 on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
-            if _rp_uart_rx_id(rx._pin._pin) == -2:
-                raise _CompileError("machine.UART.init: on the RP2350 an RX pad numbered 3 mod 4 reaches its UART only through GPIO_FUNC_UART_AUX, which this HAL never writes -- pick a pad numbered 1 mod 4 (GP1, GP13, GP17, GP29 for UART0).")
-            if _rp_uart_rx_id(rx._pin._pin) != 0:
+            if rx_id(rx._pin._pin) != 0:
                 raise _CompileError("machine.UART.init: bad RX pin -- UART0's RX pads are GP1, GP13, GP17 and GP29 on an RP2040 (those plus GP33 and GP45 on an RP2350); the other half of the table belongs to UART1, which this HAL does not drive.")
             self._hw = _UART(baudrate, tx._pin._pin, rx._pin._pin, bits, par_hw, stop)
         else:
