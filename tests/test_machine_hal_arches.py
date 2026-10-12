@@ -135,3 +135,22 @@ def test_adc_of_a_channel_past_the_last_is_refused_at_the_caller(tmp_path):
 def test_pwm_with_a_run_time_frequency_and_duty_compiles_on_rp2040(tmp_path):
     _ok(tmp_path, 'from machine import PWM, Pin\np = PWM(Pin(16), freq=2000, duty_u16=32768)\n'
                   'p.freq(500)\np.duty_u16(1000)\np.init(freq=1000)\np.deinit()\nprint("END")\n')
+
+
+def test_i2c_writeto_a_byte_and_a_buffer_compile_on_rp2040(tmp_path):
+    _ok(tmp_path, 'from machine import I2C\ni = I2C(0)\ni.writeto(0x27, 0x55)\nb = bytearray(3)\n'
+                  'i.writeto(0x27, b)\ni.readfrom_into(0x27, b)\nprint("END")\n')
+
+
+def test_i2c_on_named_pins_compiles_on_rp2040(tmp_path):
+    _ok(tmp_path, 'from machine import I2C, Pin\ni = I2C(0, scl=Pin(9), sda=Pin(8))\nprint("END")\n')
+
+
+def test_i2c_on_pins_the_bus_cannot_reach_is_refused_at_the_caller(tmp_path):
+    _refused(tmp_path, 'from machine import I2C, Pin\ni = I2C(0, scl=Pin(10), sda=Pin(9))\nprint("END")\n',
+             "SDA on GP0", 2)
+
+
+def test_i2c_held_bus_is_refused_at_the_caller(tmp_path):
+    _refused(tmp_path, 'from machine import I2C\ni = I2C(0)\ni.writeto(0x27, 0x55, False)\nprint("END")\n',
+             "writeto(stop=False)", 3)

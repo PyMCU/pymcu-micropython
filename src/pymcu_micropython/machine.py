@@ -1082,15 +1082,32 @@ class I2C:
         # timeout is the HAL's own fixed guard, so only the default is accepted.
         if id != 0:
             raise _CompileError("machine.I2C: this chip has a single TWI bus; id must be 0.")
-        if scl is not None:
-            if scl._name != "PC5":
-                raise _CompileError("machine.I2C: the TWI pins are fixed on this chip; SCL is PC5 (Pin(19) on an Uno). Use SoftI2C to pick your own pins.")
-        if sda is not None:
-            if sda._name != "PC4":
-                raise _CompileError("machine.I2C: the TWI pins are fixed on this chip; SDA is PC4 (Pin(18) on an Uno). Use SoftI2C to pick your own pins.")
-        if timeout != 50000:
-            raise _CompileError("machine.I2C: the bus timeout is fixed on this chip; drop the timeout argument.")
-        self._i2c = _I2C(0, 0, freq)
+        if __CHIP__.arch == "arm":
+            # I2C0 only. SDA is GP0, 4, 8, 12, 16 or 20 and SCL the pin after it (GP1, 5, ...);
+            # with neither given the HAL's own pins are used (GP4 and GP5). The bus speed is
+            # the HAL's standard mode.
+            if scl is None:
+                if sda is not None:
+                    raise _CompileError("machine.I2C: name both scl and sda, or neither.")
+                self._i2c = _I2C(freq)
+            else:
+                if sda is None:
+                    raise _CompileError("machine.I2C: name both scl and sda, or neither.")
+                if sda._id > 20 or sda._id % 4 != 0:
+                    raise _CompileError("machine.I2C: bus 0 uses SDA on GP0, GP4, GP8, GP12, GP16 or GP20.")
+                if scl._id != sda._id + 1:
+                    raise _CompileError("machine.I2C: bus 0 uses the SCL pin right after SDA (GP1, GP5, GP9, GP13, GP17 or GP21).")
+                self._i2c = _I2C(freq, sda._id, scl._id)
+        else:
+            if scl is not None:
+                if scl._name != "PC5":
+                    raise _CompileError("machine.I2C: the TWI pins are fixed on this chip; SCL is PC5 (Pin(19) on an Uno). Use SoftI2C to pick your own pins.")
+            if sda is not None:
+                if sda._name != "PC4":
+                    raise _CompileError("machine.I2C: the TWI pins are fixed on this chip; SDA is PC4 (Pin(18) on an Uno). Use SoftI2C to pick your own pins.")
+            if timeout != 50000:
+                raise _CompileError("machine.I2C: the bus timeout is fixed on this chip; drop the timeout argument.")
+            self._i2c = _I2C(0, 0, freq)
 
     @inline
     def scan(self) -> uint8:
@@ -1132,6 +1149,8 @@ class I2C:
             if self._i2c.writebyte(addr, buf) != 1:
                 raise OSError("[Errno 5] EIO")
         else:
+            if __CHIP__.arch == "arm":
+                raise _CompileError("machine.I2C.writeto(stop=False): the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
             st: uint8 = self._i2c.start()
             if st != _I2C.START and st != _I2C.RESTART:
                 self._i2c.stop()
@@ -1147,9 +1166,14 @@ class I2C:
     def writeto(self, addr: uint8, buf: bytearray, stop: uint8 = 1):
         # Matches MicroPython: writeto(addr, buf) sends len(buf) bytes.
         if stop:
-            if self._i2c.write_bytes(addr, buf, len(buf)) != 1:
+            if __CHIP__.arch == "arm":
+                if self._i2c.write_bytes(addr, buf, 0, len(buf)) != 0:
+                    raise OSError("[Errno 5] EIO")
+            elif self._i2c.write_bytes(addr, buf, len(buf)) != 1:
                 raise OSError("[Errno 5] EIO")
         else:
+            if __CHIP__.arch == "arm":
+                raise _CompileError("machine.I2C.writeto(stop=False): the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
             st: uint8 = self._i2c.start()
             if st != _I2C.START and st != _I2C.RESTART:
                 self._i2c.stop()
@@ -1190,6 +1214,8 @@ class I2C:
         # constants only). Eight buffers is the most this spells out; more is refused.
         if len(vector) > 8:
             raise _CompileError("machine.I2C.writevto: at most 8 buffers in the vector on this target.")
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.writevto: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         st: uint8 = self._i2c.start()
         if st != _I2C.START and st != _I2C.RESTART:
             self._i2c.stop()
@@ -1234,9 +1260,14 @@ class I2C:
         # bytes and raises OSError [Errno 5] EIO on a NACK. stop=False leaves the bus
         # held for a following operation.
         if stop:
-            if self._i2c.read_n(addr, buf, len(buf)) != 1:
+            if __CHIP__.arch == "arm":
+                if self._i2c.read_bytes(addr, buf, 0, len(buf)) != 0:
+                    raise OSError("[Errno 5] EIO")
+            elif self._i2c.read_n(addr, buf, len(buf)) != 1:
                 raise OSError("[Errno 5] EIO")
             return 1
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.readfrom_into(stop=False): the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         st: uint8 = self._i2c.start()
         if st != _I2C.START and st != _I2C.RESTART:
             self._i2c.stop()
@@ -1257,10 +1288,14 @@ class I2C:
     @inline
     def start(self):
         # MicroPython: start(). Raw primitive for manually-sequenced transactions.
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.start: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         self._i2c.start()
 
     @inline
     def stop(self):
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.stop: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         self._i2c.stop()
 
     @inline
@@ -1269,6 +1304,8 @@ class I2C:
         # transaction. Returns the number of ACKs received -- one per byte, so a buffer
         # longer than 255 needs a count wider than a byte to report it.
         acks: uint16 = 0
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.write: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         i: uint16 = 0
         n: uint16 = len(buf)
         while i < n:
@@ -1283,6 +1320,8 @@ class I2C:
         # MicroPython: readinto(buf, nack=True, /). nack=True (the normal case) sends
         # NACK after the last byte; nack=False sends ACK even for the last byte, for a
         # read that will be followed by more reads before stop().
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.readinto: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         i: uint16 = 0
         n: uint16 = len(buf)
         while i < n:
@@ -1299,6 +1338,8 @@ class I2C:
         # anything else instead of silently ignored.
         if addrsize != 8:
             raise _CompileError("machine.I2C.writeto_mem: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.writeto_mem: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         if len(buf) == 1:
             if self._i2c.writeto_mem(addr, memaddr, buf[0]) != 1:
                 raise OSError("[Errno 5] EIO")
@@ -1328,6 +1369,8 @@ class I2C:
         # MicroPython: readfrom_mem_into(addr, memaddr, buf, /, *, addrsize=8).
         if addrsize != 8:
             raise _CompileError("machine.I2C.readfrom_mem_into: only 8-bit register addresses (addrsize=8) are supported on this chip.")
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.I2C.readfrom_mem_into: the I2C HAL of this chip has no raw bus control yet; use writeto, readfrom and readfrom_into with stop=True.")
         if self._i2c.readfrom_mem(addr, memaddr, buf, len(buf)) != 1:
             raise OSError("[Errno 5] EIO")
         return 1
