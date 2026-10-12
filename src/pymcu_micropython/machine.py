@@ -29,6 +29,41 @@ from pymcu.hal.softi2c import SoftI2C as _SoftI2C
 from pymcu.hal.softspi import SoftSPI as _SoftSPI
 from pymcu.hal.uart import UART as _UART
 from pymcu.time import delay_us as _delay_us
+# A HAL a chip does not have is replaced by a stand-in carrying the same name, so a class body
+# that names it still compiles. Its first use raises that chip's error at the caller's line.
+# The imports further down rebind the names on the chips that do have the HAL.
+if __CHIP__.arch != "avr" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic14" and __CHIP__.arch != "pic14e" and __CHIP__.arch != "pic18":
+    class _Watchdog:
+        def __init__(self, timeout: uint16):
+            raise _CompileError("machine.WDT is not available on " + __CHIP__.name + " yet: its HAL has no watchdog.")
+
+        def enable(self):
+            pass
+
+        def feed(self):
+            pass
+
+    class _Timer:
+        IRQ_COMPA = 0
+
+        def __init__(self, id: uint8, prescaler: uint16):
+            raise _CompileError("machine.Timer is not available on " + __CHIP__.name + " yet: its HAL has no timer for this chip.")
+if __CHIP__.arch != "avr" and __CHIP__.arch != "arm" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic14" and __CHIP__.arch != "pic14e" and __CHIP__.arch != "pic18":
+    class _I2C:
+        def __init__(self, bus: uint8, pin: uint8, freq: uint32):
+            raise _CompileError("machine.I2C is not available on " + __CHIP__.name + " yet: its HAL has no I2C for this chip.")
+
+    class _SPI:
+        def __init__(self, bus: uint8, pin: str, baudrate: uint32, polarity: uint8, phase: uint8, mode: uint8):
+            raise _CompileError("machine.SPI is not available on " + __CHIP__.name + " yet: its HAL has no SPI for this chip.")
+if __CHIP__.arch != "avr" and __CHIP__.arch != "arm" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic14" and __CHIP__.arch != "pic14e" and __CHIP__.arch != "pic18":
+    class _AnalogPin:
+        def __init__(self, port: str):
+            raise _CompileError("machine.ADC is not available on " + __CHIP__.name + " yet: its HAL has no ADC for this chip.")
+
+    class _PWM:
+        def __init__(self, pin: str, freq: uint32, invert: uint8, duty_u16: uint16):
+            raise _CompileError("machine.PWM is not available on " + __CHIP__.name + " yet: its HAL has no PWM for this chip.")
 if __CHIP__.arch == "avr":
     # Imported from the AVR package rather than the pymcu.hal.gpio facade on
     # purpose. Re-exporting the name through that facade needs a wrapper def,
