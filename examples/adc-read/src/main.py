@@ -18,7 +18,7 @@ from pymcu.types import uint16
 
 def main():
     uart = UART(0, 9600)
-    adc  = ADC(Pin(14))   # Pin(14) = A0 = PC0
+    adc  = ADC(0)   # input 0: A0 (PC0) on an Uno, GP26 on a Pico
 
     uart.write("ADC ready\n")
 

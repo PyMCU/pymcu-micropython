@@ -25,7 +25,7 @@ from utime import sleep_ms
 from lm35 import LM35
 
 
-sensor = LM35(ADC(Pin(14)))   # A0 = Pin(14) = PC0
+sensor = LM35(ADC(0))   # input 0: A0 (PC0) on an Uno, GP26 on a Pico
 
 print("LM35 ready")
 

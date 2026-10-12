@@ -175,6 +175,7 @@ class Pin:
             # through to the HAL's mode() silently configures an input.
             if mode == Pin.OPEN_DRAIN:
                 raise _CompileError("machine.Pin: OPEN_DRAIN is not a mode this chip can drive -- its GPIO is push-pull only. Drive the pin low for 0 and switch it to Pin.IN for 1, with an external pull-up (the AVR HAL refuses this the same way).")
+            self._id = pin_id
             self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else 0)
         elif __CHIP__.arch == "avr":
             # AVR: board number -> port string, per chip (see the HAL).
@@ -193,6 +194,7 @@ class Pin:
             # The rp GPIO constructor accepts pull but never programs it, so the
             # pull is applied through pull(), which does -- and pull=None is
             # upstream's "no pull" spelling, the HAL's 0.
+            self._id = pin_id
             self._pin = _Pin(pin_id, 1 if mode == Pin.IN or mode == -1 else 0)
             if pull is None:
                 self._pin.pull(0)
@@ -679,20 +681,34 @@ class ADC:
     def __init__(self, pin: Pin):
         # pin: machine.Pin instance. Use Pin(14)-Pin(19) for A0-A5 on Arduino Uno.
         # Extracts the CT port string (e.g. "PC0") from pin._name for the HAL.
-        self._adc = _AnalogPin(pin._name)
+        if __CHIP__.arch == "arm":
+            # GP26-GP29 are the ADC inputs 0-3; the HAL takes the input number.
+            if pin._id < 26 or pin._id > 29:
+                raise _CompileError("machine.ADC: only GP26-GP29 reach the ADC on this chip; use ADC(Pin(26))..ADC(Pin(29)), or ADC(4) for the temperature sensor.")
+            self._adc = _AnalogPin(pin._id - 26)
+        else:
+            self._adc = _AnalogPin(pin._name)
 
     @inline
     def __init__(self, channel: const[uint8]):
         # ESP-style channel number (MicroPython quickref: machine.ADC(0)).
         # Channels 0-5 map to A0-A5 (PC0-PC5) on the Arduino Uno.
-        if channel > 5:
-            raise _CompileError("machine.ADC: this chip has ADC channels 0-5 (A0-A5); use ADC(0)..ADC(5) or ADC(Pin(14))..ADC(Pin(19)).")
-        self._adc = _AnalogPin(_adc_channel_port(channel))
+        if __CHIP__.arch == "arm":
+            # Inputs 0-3 are GP26-GP29 and 4 is the internal temperature sensor.
+            if channel > 4:
+                raise _CompileError("machine.ADC: this chip has ADC inputs 0-3 (GP26-GP29) and 4 (the temperature sensor); use ADC(0)..ADC(4) or ADC(Pin(26))..ADC(Pin(29)).")
+            self._adc = _AnalogPin(channel)
+        else:
+            if channel > 5:
+                raise _CompileError("machine.ADC: this chip has ADC channels 0-5 (A0-A5); use ADC(0)..ADC(5) or ADC(Pin(14))..ADC(Pin(19)).")
+            self._adc = _AnalogPin(_adc_channel_port(channel))
 
     @inline
     def __init__(self, pin_name: const[str]):
         # The port-string form, which is what the board modules spell A0..A5 as
         # (arduino_uno.A0 is "PC0"): ADC(arduino_uno.A0).
+        if __CHIP__.arch == "arm":
+            raise _CompileError("machine.ADC: a port name is the AVR spelling; on this chip use ADC(Pin(26))..ADC(Pin(29)) or ADC(0)..ADC(4).")
         self._adc = _AnalogPin(pin_name)
 
     @inline
@@ -730,6 +746,9 @@ class ADC:
     def read_u16(self) -> uint16:
         # MicroPython-style 16-bit read (0-65535, scaled from 10-bit) -- the
         # only ADC read the rp2 port exposes; there is no 0..1023 read().
+        if __CHIP__.arch == "arm":
+            # The HAL scales its 12-bit reading to 16 bits the way the rp2 port does.
+            return self._adc.read_u16()
         self._adc.start()
         # Scaled the way the rp2 port scales its 12-bit reading, raw << (16 - bits) |
         # raw >> (2 * bits - 16): the top bits are copied into the bottom ones, so full
@@ -782,7 +801,11 @@ class PWM:
         self._duty = duty_u16
         if duty_ns != 0:
             self._duty = _duty_ns_to_u16(duty_ns, freq)
-        self._pwm = _PWM(pin._name, freq=freq, invert=invert, duty_u16=self._duty)
+        if __CHIP__.arch == "arm":
+            # The GPIO number picks the slice and channel; the frequency and duty are run-time.
+            self._pwm = _PWM(pin._id, freq=freq, invert=invert, duty_u16=self._duty)
+        else:
+            self._pwm = _PWM(pin._name, freq=freq, invert=invert, duty_u16=self._duty)
 
     @inline
     def freq(self) -> uint16:

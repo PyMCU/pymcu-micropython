@@ -94,3 +94,44 @@ def test_wdt_compiles_on_avr(tmp_path):
 def test_timer_compiles_on_avr(tmp_path):
     rc, log = _build(tmp_path, 'from machine import Timer\nt = Timer(0)\nprint("END")\n', "avr")
     assert rc == 0, log
+
+
+# --- ADC, PWM, I2C and the examples on the RP2040 -------------------------------------------
+#
+# The layer used to hand these classes a pin NAME that only exists on AVR, so every one of them
+# stopped with "varies at runtime" or "undefined function". On the RP2040 the pin is the GPIO
+# number, a compile-time constant.
+
+def _ok(tmp_path, body, chip="rp2040"):
+    rc, log = _build(tmp_path, body, chip)
+    assert rc == 0, log
+
+
+def _refused(tmp_path, body, text, line):
+    rc, log = _build(tmp_path, body, "rp2040")
+    assert rc != 0, log
+    assert text in log, log
+    assert f"src/main.py:{line}:" in log, log
+
+
+def test_adc_of_a_gpio_pin_compiles_on_rp2040(tmp_path):
+    _ok(tmp_path, 'from machine import ADC, Pin\na = ADC(Pin(27))\nv = a.read_u16()\nprint("END")\n')
+
+
+def test_adc_of_the_temperature_sensor_compiles_on_rp2040(tmp_path):
+    _ok(tmp_path, 'from machine import ADC\na = ADC(4)\nv = a.read_u16()\nprint("END")\n')
+
+
+def test_adc_of_a_pin_without_an_input_is_refused_at_the_caller(tmp_path):
+    _refused(tmp_path, 'from machine import ADC, Pin\na = ADC(Pin(5))\nprint("END")\n',
+             "only GP26-GP29 reach the ADC", 2)
+
+
+def test_adc_of_a_channel_past_the_last_is_refused_at_the_caller(tmp_path):
+    _refused(tmp_path, 'from machine import ADC\na = ADC(5)\nprint("END")\n',
+             "ADC inputs 0-3", 2)
+
+
+def test_pwm_with_a_run_time_frequency_and_duty_compiles_on_rp2040(tmp_path):
+    _ok(tmp_path, 'from machine import PWM, Pin\np = PWM(Pin(16), freq=2000, duty_u16=32768)\n'
+                  'p.freq(500)\np.duty_u16(1000)\np.init(freq=1000)\np.deinit()\nprint("END")\n')
