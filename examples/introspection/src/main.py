@@ -18,6 +18,7 @@ import sys
 import usys
 import os
 import uos
+from os import uname
 from machine import Pin
 
 # Both spellings, condition position -- the interpreter-identity guard.

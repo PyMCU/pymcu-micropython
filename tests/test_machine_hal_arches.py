@@ -151,3 +151,23 @@ def test_i2c_on_pins_the_bus_cannot_reach_is_refused_at_the_caller(tmp_path):
 def test_i2c_held_bus_is_refused_at_the_caller(tmp_path):
     _refused(tmp_path, 'from machine import I2C\ni = I2C(0)\ni.writeto(0x27, 0x55, False)\nprint("END")\n',
              "writeto(stop=False)", 3)
+
+
+# Every example that is not tied to AVR hardware builds for both chips; the board line is the
+# only thing that changes.
+PORTABLE_EXAMPLES = ["blink", "dht-sensor", "signal-led", "adc-read", "lm35-sensor", "pwm-demo",
+                     "lcd-i2c", "uart-echo", "wdt-blink", "introspection"]
+
+
+@pytest.mark.parametrize("name", PORTABLE_EXAMPLES)
+def test_example_builds_on_rp2040(tmp_path, name):
+    import shutil as _sh
+    src = Path(__file__).resolve().parent.parent / "examples" / name
+    dst = tmp_path / name
+    _sh.copytree(src, dst, ignore=_sh.ignore_patterns("dist", "__pycache__", "build.log"))
+    text = (dst / "pyproject.toml").read_text()
+    text = re.sub(r'board\s*=\s*"[^"]*"', 'board = "raspberry_pi_pico"', text)
+    text = re.sub(r'frequency\s*=\s*\d+', 'frequency = 125000000', text)
+    (dst / "pyproject.toml").write_text(text)
+    result = subprocess.run([PYMCU, "build"], cwd=dst, capture_output=True, text=True, timeout=600)
+    assert result.returncode == 0, result.stdout + result.stderr

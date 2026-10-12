@@ -1,7 +1,7 @@
 # UART Echo -- MicroPython style on Arduino Uno
 #
 # Demonstrates:
-#   machine.UART -- read/write single bytes
+#   machine.UART -- readinto() a one-byte buffer and write it back
 #   machine.Pin  -- LED blinks on each received byte
 #   utime        -- sleep_ms() for LED feedback
 #
@@ -28,8 +28,13 @@ def main():
     uart.write(79)    # O
     uart.write(10)    # \n
 
+    # readinto() is the portable read: it answers the count, or None when nothing
+    # arrived (the default timeout is 0, so it never blocks). uart.read() returns a
+    # bytes object, which this target cannot build.
+    buf = bytearray(1)
     while True:
-        b: uint8 = uart.read()
-        led.value(1)
-        uart.write(b)
-        led.value(0)
+        n = uart.readinto(buf)
+        if n:
+            led.value(1)
+            uart.write(buf)
+            led.value(0)
