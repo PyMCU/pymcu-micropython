@@ -53,6 +53,12 @@ if __CHIP__.arch == "arm":
     # separate gate from the avr/else one above: tx_id/rx_id exist only on
     # the rp2040/rp2350 branches of pymcu.hal.uart, not on every non-AVR arch.
     from pymcu.hal.uart import tx_id, rx_id
+    # The RP2040/RP2350 HALs of the classes below. Imported on the chips that have them,
+    # as the AVR block imports its own: a class used on rp2040 finds its HAL by name.
+    from pymcu.hal.adc import AnalogPin as _AnalogPin
+    from pymcu.hal.pwm import PWM as _PWM
+    from pymcu.hal.i2c import I2C as _I2C
+    from pymcu.hal.spi import SPI as _SPI
 from pymcu.hal.power import (
     sleep_idle as _sleep_idle,
     sleep_power_save as _sleep_power_save,
