@@ -32,7 +32,7 @@ from pymcu.time import delay_us as _delay_us
 # A HAL a chip does not have is replaced by a stand-in carrying the same name, so a class body
 # that names it still compiles. Its first use raises that chip's error at the caller's line.
 # The imports further down rebind the names on the chips that do have the HAL.
-if __CHIP__.arch != "avr" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic14" and __CHIP__.arch != "pic14e" and __CHIP__.arch != "pic18":
+if __CHIP__.arch != "avr" and __CHIP__.name != "rp2040" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic14" and __CHIP__.arch != "pic14e" and __CHIP__.arch != "pic18":
     class _Watchdog:
         def __init__(self, timeout: uint16):
             raise _CompileError("machine.WDT is not available on " + __CHIP__.name + " yet: its HAL has no watchdog.")
@@ -42,7 +42,7 @@ if __CHIP__.arch != "avr" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic
 
         def feed(self):
             pass
-
+if __CHIP__.arch != "avr" and __CHIP__.arch != "pic12" and __CHIP__.arch != "pic14" and __CHIP__.arch != "pic14e" and __CHIP__.arch != "pic18":
     class _Timer:
         IRQ_COMPA = 0
 
@@ -94,6 +94,8 @@ if __CHIP__.arch == "arm":
     from pymcu.hal.pwm import PWM as _PWM
     from pymcu.hal.i2c import I2C as _I2C
     from pymcu.hal.spi import SPI as _SPI
+if __CHIP__.name == "rp2040":
+    from pymcu.hal.watchdog import Watchdog as _Watchdog
 from pymcu.hal.power import (
     sleep_idle as _sleep_idle,
     sleep_power_save as _sleep_power_save,

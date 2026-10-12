@@ -70,12 +70,9 @@ def test_spi_resolves_its_hal_on_rp2040(tmp_path):
     assert "undefined function" not in log, log
 
 
-def test_wdt_on_rp2040_is_a_clear_error_at_the_caller(tmp_path):
+def test_wdt_compiles_on_rp2040(tmp_path):
     rc, log = _build(tmp_path, 'from machine import WDT\nw = WDT(timeout=2000)\nw.feed()\nprint("END")\n', "rp2040")
-    assert rc != 0, log
-    assert "machine.WDT is not available on rp2040 yet" in log, log
-    assert "src/main.py:2:" in log, log
-    assert "undefined function" not in log, log
+    assert rc == 0, log
 
 
 def test_timer_on_rp2040_is_a_clear_error_at_the_caller(tmp_path):
